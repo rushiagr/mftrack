@@ -1,7 +1,8 @@
 from examples import utimf
 
 # NOTES
-# step 1: parse when only the table is provided (strip off table heading if
+# ON PARSING TRANSACTION DATA
+#DONE step 1: parse when only the table is provided (strip off table heading if
 #                                                exist)
 # step 2: parse even when more information is present(e.g. when the user does a 
 #                                                     ctrl+A and then pastes)
@@ -21,7 +22,7 @@ def parse_uti_txn(txn_string):
         txn_matrix = txn_matrix[1:]
     return txn_matrix
 
-#print parse_uti_txn(utimf.txn_str)
+print parse_uti_txn(utimf.txn_str)
 
 import urllib2
 
@@ -53,5 +54,34 @@ def get_url(mf_code, from_ddmmyyyy_str, to_ddmmyyyy_str):
          })
     return url_str
 
+def get_date_int(date_str, date_ref=None):
+    """ Returns date in integer form (YYYYMMDD, e.g. 20141231). If the 
+    date_ref is provided, it will use that as a guide for conversion.
+    Example of date_ref: '01 Jan 2014'"""
+    months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep',
+              'oct', 'nov', 'dec']
+    if date_ref.lower() == '01 jan 2014':
+        date = date_str[7:]
+        month_int = months.index(date_str[3:6].lower())+1
+        date += str(month_int) if month_int > 10 else '0'+str(month_int)
+        date += date_str[0:2]
+#        print date
+        return int(date)
+    elif date_ref.lower() == '01/01/2014':
+        date = date_str[6:]
+        date += date_str[3:5]
+        date += date_str[0:2]
+        return int(date)
+    else:
+        raise
+    # TODO(rushiagr): implement all other types
+
 print get_mf_data('MUT119', '08082008', '11082008')
-print get_url('MUT119', '08082008', '08082012')
+#print get_url('MUT119', '08082008', '08082012')
+print get_date_int('04 Feb 2015', '01 jan 2014')
+print get_date_int('04/02/2015', '01/01/2014')
+
+
+
+
+
