@@ -10,6 +10,9 @@ from examples import utimf
 # step 4: only take the transactions whose status is 'processed', and remove everything else
 # step 5: see how to handle cases when user pastes second time, which has a transaction which is now in 'processed' state but was in a different state previously
 
+# as on 22 jan wednsday
+#367389.77Total
+#375042.98Current
 #print utimf.txn_str
 import urllib2
 import datetime
@@ -41,6 +44,7 @@ class Txn(object):
 
 def get_transaction_stats(txn_list):
     purchase_txn = [txn for txn in txn_list if txn.txn_type == 'New Purchase' or txn.txn_type == 'Additional Purchase']
+#    import pdb;pdb.set_trace()
     redemption_txn = [txn for txn in txn_list if txn.txn_type == 'Redemption']
     amt_invested = sum([float(txn.amount) for txn in purchase_txn])
     amt_redeemed = sum([float(txn.amount) for txn in redemption_txn])
@@ -58,15 +62,17 @@ def get_transaction_stats(txn_list):
 
     left_units = {}
     # if someone has bought, only then he can sell it
-    for fund, bought_units in purchase_units_dict.keys():
+    for fund, bought_units in purchase_units_dict.iteritems():
         sold_units = redemption_units_dict.get(fund)
-        left_units[fund] = units if sold_units is None else (bought_units - sold_units)
+        left_units[fund] = bought_units if sold_units is None else (bought_units - sold_units)
         
     curr_val_dict = get_curr_fund_value(left_units.keys()) # returns a dict #TODO
     
     total_amt_invested = 0.0
     
-    for fund in curr_val_list.keys():
+    for fund in curr_val_dict.keys():
+        if left_units[fund] is None:
+            continue
         total_amt_invested += curr_val_dict[fund] * left_units[fund]
     
     return amt_invested, amt_redeemed, total_amt_invested
@@ -78,22 +84,30 @@ def get_transaction_stats(txn_list):
 
 
 def get_curr_fund_value(fund_name_list):
-    unit_values = []
+    unit_values = {}
     for fund in fund_name_list:
-        fund_id = get_fund_id_from_name(fund) #TODO
-        unit_values.append(get_curr_fund_value_from_fund_id(fund_id)) #TODO
+        fund_id = fund_ids[fund]
+        unit_values[fund] = (get_curr_fund_value_from_fund_id(fund_id))
+#        fund_value_list = extract_moneycontrol_data(get_mf_data('MUT119', intdate_last_month(), intdate_today()))
     return unit_values
+
+def get_curr_fund_value_from_fund_id(fund_id):
+    data_list = extract_moneycontrol_data(get_mf_data(fund_id, 
+                                                 intdate_last_month(), 
+                                                 intdate_today()))
+    return data_list[-1][1]
 
 def txn_matrix_to_obj_list(txn_matrix):
     txn_obj_list = []
     for txn in txn_matrix:
+        print 'txxxn', txn
         obj = Txn(txn[0],
                   txn[1],
                   float(txn[2]),
                   float(txn[3]),
                   get_date_int(txn[4], '01/01/2014'),
                   txn[5],
-                  txn[6])
+                  txn[6] if len(txn) >= 7 else '')
         txn_obj_list.append(obj)
     return txn_obj_list
 
@@ -167,12 +181,20 @@ def intdate_today():
 def intdate_last_month():
     return intdate_from_datetime(datetime.date.today() - datetime.timedelta(days=30))
 
-print get_mf_data('MUT119', intdate_last_month(), intdate_today())
+def extract_moneycontrol_data(data_str):
+    lines = data_str.split('\n')
+    date_value_list = []
+    for line in lines:
+        l = line.split(',')
+        date_value_list.append((get_date_int(l[0], '01 jan 2014'), float(l[1])))
+    return date_value_list
+
+print extract_moneycontrol_data(get_mf_data('MUT119', intdate_last_month(), intdate_today()))
 #print get_url('MUT119', '08082008', '08082012')
 print get_date_int('04 Feb 2015', '01 Jan 2014')
 print get_date_int('04/02/2015', '01/01/2014')
 
-
+print get_transaction_stats(txn_matrix_to_obj_list(parse_uti_txn(utimf.txn_str)))
 
 
 
