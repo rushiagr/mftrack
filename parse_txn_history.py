@@ -1,4 +1,3 @@
-from examples import utimf
 
 # NOTES
 # ON PARSING TRANSACTION DATA
@@ -14,6 +13,10 @@ from examples import utimf
 #367389.77Total
 #375042.98Current
 #print utimf.txn_str
+from examples import utimf
+from examples import icicipru
+
+
 import urllib2
 import datetime
 
@@ -23,13 +26,6 @@ fund_ids = {
     'UTI-NIFTY INDEX FUND - GROWTH': 'MUT029',
     'UTI-NIFTY INDEX FUND - DIVIDEND': 'MUT087',
     }
-
-NEW_PURCHASE = 1
-ADDITIONAL_PURCHASE = 2
-REDEMPTION = 3
-
-PROCESSED = 101
-NOT_PROCESSED = 102
 
 class Txn(object):
     def __init__(self, fund_name=None, txn_type=None, amount=None, units=None,
@@ -43,20 +39,21 @@ class Txn(object):
         self.remarks = remarks
 
 def get_transaction_stats(txn_list):
-    purchase_txn = [txn for txn in txn_list if txn.txn_type == 'New Purchase' or txn.txn_type == 'Additional Purchase']
-#    import pdb;pdb.set_trace()
+    purchase_txn = [txn for txn in txn_list if txn.txn_type in 
+                    ['New Purchase', 'Additional Purchase']]
     redemption_txn = [txn for txn in txn_list if txn.txn_type == 'Redemption']
     amt_invested = sum([float(txn.amount) for txn in purchase_txn])
     amt_redeemed = sum([float(txn.amount) for txn in redemption_txn])
+
     purchase_units_dict = {}
     for txn in purchase_txn:
-        purchase_units_dict[txn.fund_name] = 0
+        purchase_units_dict[txn.fund_name] = 0.0
     for txn in purchase_txn:
         purchase_units_dict[txn.fund_name] += float(txn.units)
 
     redemption_units_dict = {}
     for txn in redemption_txn:
-        redemption_units_dict[txn.fund_name] = 0
+        redemption_units_dict[txn.fund_name] = 0.0
     for txn in redemption_txn:
         redemption_units_dict[txn.fund_name] += float(txn.units)
 
@@ -66,7 +63,7 @@ def get_transaction_stats(txn_list):
         sold_units = redemption_units_dict.get(fund)
         left_units[fund] = bought_units if sold_units is None else (bought_units - sold_units)
         
-    curr_val_dict = get_curr_fund_value(left_units.keys()) # returns a dict #TODO
+    curr_val_dict = get_curr_fund_value(left_units.keys())
     
     total_amt_invested = 0.0
     
@@ -77,18 +74,11 @@ def get_transaction_stats(txn_list):
     
     return amt_invested, amt_redeemed, total_amt_invested
 
-#    amt_invested = get_amt_invested()
-#     units_still_invested = get_units(purchase_list)
-#     units_redeemed = get_units(redemption_list)
-#     pass
-
-
 def get_curr_fund_value(fund_name_list):
     unit_values = {}
     for fund in fund_name_list:
         fund_id = fund_ids[fund]
-        unit_values[fund] = (get_curr_fund_value_from_fund_id(fund_id))
-#        fund_value_list = extract_moneycontrol_data(get_mf_data('MUT119', intdate_last_month(), intdate_today()))
+        unit_values[fund] = get_curr_fund_value_from_fund_id(fund_id)
     return unit_values
 
 def get_curr_fund_value_from_fund_id(fund_id):
@@ -97,10 +87,9 @@ def get_curr_fund_value_from_fund_id(fund_id):
                                                  intdate_today()))
     return data_list[-1][1]
 
-def txn_matrix_to_obj_list(txn_matrix):
+def uti_txn_matrix_to_obj_list(txn_matrix):
     txn_obj_list = []
     for txn in txn_matrix:
-        print 'txxxn', txn
         obj = Txn(txn[0],
                   txn[1],
                   float(txn[2]),
@@ -110,6 +99,19 @@ def txn_matrix_to_obj_list(txn_matrix):
                   txn[6] if len(txn) >= 7 else '')
         txn_obj_list.append(obj)
     return txn_obj_list
+
+# def icicipru_txn_matrix_to_obj_list(txn_matrix):
+#     txn_obj_list = []
+#     for txn in txn_matrix:
+#         obj = Txn(txn[0],
+#                   txn[1],
+#                   float(txn[2]),
+#                   float(txn[3]),
+#                   get_date_int(txn[4], '01/01/2014'),
+#                   txn[5],
+#                   txn[6] if len(txn) >= 7 else '')
+#         txn_obj_list.append(obj)
+#     return txn_obj_list
 
 
 def parse_uti_txn(txn_string):
@@ -121,13 +123,18 @@ def parse_uti_txn(txn_string):
         txn_matrix = txn_matrix[1:]
     return txn_matrix
 
+def parse_icicipru_txn(txn_string):
+    txn_list = txn_string.strip().split('\n')
+    txn_matrix = [line.split('    ') for line in txn_list]
+    if txn_matrix[0][0].lower() == 'fund name':
+        txn_matrix = txn_matrix[1:]
+    return txn_matrix
+
 print parse_uti_txn(utimf.txn_str)
 
 def get_mf_data(mf_code, from_ddmmyyyy_str, to_ddmmyyyy_str):
     query_url = get_url(mf_code, from_ddmmyyyy_str, to_ddmmyyyy_str)
     resp = urllib2.urlopen(query_url)
-#    print resp
-#    print resp.read()
     return resp.read()
 
 def get_url(mf_code, from_date, to_date):
@@ -164,14 +171,14 @@ def get_date_int(date_str, date_ref=None):
         month_int = months.index(date_str[3:6].lower())+1
         date += str(month_int) if month_int > 10 else '0'+str(month_int)
         date += date_str[0:2]
-#        print date
         return int(date)
     elif date_ref.lower() == '01/01/2014':
         date = date_str[6:] + date_str[3:5] + date_str[0:2] 
         return int(date)
     else:
         raise
-    # TODO(rushiagr): implement all other types
+    # TODO(rushiagr): implement all other types, including pattern matching
+
 def intdate_from_datetime(date):
     return (date.day*1000000 + date.month*10000 + date.year)
 
@@ -189,12 +196,12 @@ def extract_moneycontrol_data(data_str):
         date_value_list.append((get_date_int(l[0], '01 jan 2014'), float(l[1])))
     return date_value_list
 
-print extract_moneycontrol_data(get_mf_data('MUT119', intdate_last_month(), intdate_today()))
-#print get_url('MUT119', '08082008', '08082012')
-print get_date_int('04 Feb 2015', '01 Jan 2014')
-print get_date_int('04/02/2015', '01/01/2014')
+#print extract_moneycontrol_data(get_mf_data('MPI110', intdate_last_month(), intdate_today()))
+#print get_mf_data('MPI110', intdate_last_month(), intdate_today())
+#print get_date_int('04 Feb 2015', '01 Jan 2014')
+#print get_date_int('04/02/2015', '01/01/2014')
 
-print get_transaction_stats(txn_matrix_to_obj_list(parse_uti_txn(utimf.txn_str)))
+print get_transaction_stats(uti_txn_matrix_to_obj_list(parse_uti_txn(utimf.txn_str)))
 
 
 
