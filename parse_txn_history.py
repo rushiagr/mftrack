@@ -17,6 +17,8 @@
 
 # TODO: Store NAV in Txn object
 
+# TODO: while taking data from moneycontrol, also return the date of NAV
+
 
 # as on 22 jan wednsday
 #367389.77Total
@@ -34,6 +36,10 @@ fund_ids = {
     'UTI-TREASURY ADVANTAGE FUND - INSTITUTIONAL PLAN - GROWTH': 'MUT119',
     'UTI-NIFTY INDEX FUND - GROWTH': 'MUT029',
     'UTI-NIFTY INDEX FUND - DIVIDEND': 'MUT087',
+    'ICICI Prudential US Bluechip Equity Fund - Regular Plan - Growth': 'MPI1065',
+    'ICICI Prudential Technology Fund - Direct Plan - Growth': 'MPI1128',
+    'ICICI Prudential Technology Fund - Regular Plan - Growth': 'MPI015',
+    'ICICI Prudential Export and Other Services Fund - Regular Plan - Growth': 'MPI110',
     }
 
 class Txn(object):
@@ -111,7 +117,7 @@ def get_transaction_stats(txn_list):
         purchase_units_dict[txn.fund_name] = 0.0
     for txn in purchase_txn:
         purchase_units_dict[txn.fund_name] += txn.units
-
+        
     redemption_units_dict = {}
     for txn in redemption_txn:
         redemption_units_dict[txn.fund_name] = 0.0
@@ -126,7 +132,7 @@ def get_transaction_stats(txn_list):
         left_units[fund] = bought_units if sold_units is None else (bought_units - sold_units)
         
     curr_val_dict = get_curr_fund_value(left_units.keys())
-    
+        
     total_amt_invested = 0.0
     
     for fund in curr_val_dict.keys():
@@ -182,7 +188,6 @@ def parse_txn(txn_string):
     txn_matrix = [line.split('    ') for line in txn_list]
     if txn_matrix[0][0].lower() in ['scheme', 'fund name']:
         txn_matrix = txn_matrix[1:]
-    print txn_matrix
     return txn_matrix
 
 def get_mf_data(mf_code, from_ddmmyyyy_str, to_ddmmyyyy_str):
@@ -249,10 +254,11 @@ def extract_moneycontrol_data(data_str):
         date_value_list.append((get_date_int(l[0], '01 jan 2014'), float(l[1])))
     return date_value_list
 
-print extract_moneycontrol_data(get_mf_data('MPI110', intdate_last_month(), intdate_today()))
-print get_mf_data('MPI110', intdate_last_month(), intdate_today())
+#print extract_moneycontrol_data(get_mf_data('MPI110', intdate_last_month(), intdate_today()))
+#print get_mf_data('MPI110', intdate_last_month(), intdate_today())
 
 print get_transaction_stats(txn_to_obj_list(utimf.txn_str, 'uti'))
+print get_transaction_stats(txn_to_obj_list(icicipru.txn_str, 'icici'))
 
 
 
