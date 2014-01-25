@@ -9,6 +9,15 @@
 # step 4: only take the transactions whose status is 'processed', and remove everything else
 # step 5: see how to handle cases when user pastes second time, which has a transaction which is now in 'processed' state but was in a different state previously
 
+
+# TODO(rushiagr): get mutual fund IDs from internet, and not from a dict filled
+# manually
+
+# TODO: auto-detect the company of transaction pasted
+
+# TODO: Store NAV in Txn object
+
+
 # as on 22 jan wednsday
 #367389.77Total
 #375042.98Current
@@ -31,34 +40,87 @@ class Txn(object):
     def __init__(self, fund_name=None, txn_type=None, amount=None, units=None,
                  date=None, status=None, remarks=None):
         self.fund_name = fund_name
-        self.txn_type = txn_type
-        self.amount = amount
-        self.units = units
-        self.date = date
+        if txn_type.lower() in ['purchase', 'new purchase']:
+            self.txn_type = 'NEW_PURCHASE'
+        elif txn_type.lower() in ['additional purchase']:
+            self.txn_type = 'ADDITIONAL_PURCHASE'
+        elif txn_type.lower() in ['redemption']:
+            self.txn_type = 'REDEMPTION'
+        else:
+            print "txn type is", txn_type
+            raise BaseException
+        
+        if type(amount) == float:
+            self.amount = amount
+        elif type(amount) == int:
+            self.amount = float(amount)
+        elif type(amount) == str:
+            amount = amount.replace(',', '')
+            try:
+                self.amount = float(amount)
+            except ValueError:
+                print 'amount format not compatible'
+                raise
+
+        if type(units) == float:
+            self.units = units
+        elif type(units) == int:
+            self.units = float(units)
+        elif type(units) == str:
+            units = units.replace(',', '')
+            try:
+                self.units = float(units)
+            except ValueError:
+                print 'units format not compatible'
+                raise
+
+        months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug',
+                  'sep', 'oct', 'nov', 'dec']
+        if type(date) == str:
+            # Date format '01/01/2014' (DD/MM/YYYY)
+            if len(date) == 10 and date[2] == date[5] == '/':
+                self.date = int(date[6:10]+date[3:5]+date[0:2])
+            # Date format '01 Jan 2014' or '01-jan-2014'
+            elif len(date) == 11 and date[3:6].lower() in months:
+                month_int = months.index(date[3:6].lower())+1
+                month = ('%2s' % month_int).replace(' ', '0')
+                self.date = int(date[7:11]+month+date[0:2])
+            else:
+                raise
+        elif type(date) == int:
+            if date < 20300000 and date > 19500000:
+                self.date = date
+            else:
+                raise
+
         self.status = status
         self.remarks = remarks
+        self.fund_id = None
+        self.nav = None     # NAV on the day the transaction is performed
 
 def get_transaction_stats(txn_list):
     purchase_txn = [txn for txn in txn_list if txn.txn_type in 
-                    ['New Purchase', 'Additional Purchase']]
-    redemption_txn = [txn for txn in txn_list if txn.txn_type == 'Redemption']
-    amt_invested = sum([float(txn.amount) for txn in purchase_txn])
-    amt_redeemed = sum([float(txn.amount) for txn in redemption_txn])
+                    ['NEW_PURCHASE', 'ADDITIONAL_PURCHASE']]
+    redemption_txn = [txn for txn in txn_list if txn.txn_type == 'REDEMPTION']
+
+    amt_invested = sum([txn.amount for txn in purchase_txn])
+    amt_redeemed = sum([txn.amount for txn in redemption_txn])
 
     purchase_units_dict = {}
     for txn in purchase_txn:
         purchase_units_dict[txn.fund_name] = 0.0
     for txn in purchase_txn:
-        purchase_units_dict[txn.fund_name] += float(txn.units)
+        purchase_units_dict[txn.fund_name] += txn.units
 
     redemption_units_dict = {}
     for txn in redemption_txn:
         redemption_units_dict[txn.fund_name] = 0.0
     for txn in redemption_txn:
-        redemption_units_dict[txn.fund_name] += float(txn.units)
+        redemption_units_dict[txn.fund_name] += txn.units
 
     left_units = {}
     # if someone has bought, only then he can sell it
+    # TODO: add a check here if the sold units are more than bought
     for fund, bought_units in purchase_units_dict.iteritems():
         sold_units = redemption_units_dict.get(fund)
         left_units[fund] = bought_units if sold_units is None else (bought_units - sold_units)
@@ -78,59 +140,50 @@ def get_curr_fund_value(fund_name_list):
     unit_values = {}
     for fund in fund_name_list:
         fund_id = fund_ids[fund]
-        unit_values[fund] = get_curr_fund_value_from_fund_id(fund_id)
+        data_list = extract_moneycontrol_data(get_mf_data(fund_id, 
+                    intdate_last_month(), intdate_today()))
+        unit_values[fund] = data_list[-1][1]
     return unit_values
 
-def get_curr_fund_value_from_fund_id(fund_id):
-    data_list = extract_moneycontrol_data(get_mf_data(fund_id, 
-                                                 intdate_last_month(), 
-                                                 intdate_today()))
-    return data_list[-1][1]
-
-def uti_txn_matrix_to_obj_list(txn_matrix):
+def txn_to_obj_list(txn_string, amc):
+    txn_matrix = parse_txn(txn_string)
     txn_obj_list = []
+    if amc.lower() == 'uti':
+        positions = [0, 1, 2, 3, 4]
+    elif amc.lower() == 'icici':
+        positions = [0, 1, 5, 3, 2]
+    else:
+        raise
+
     for txn in txn_matrix:
-        obj = Txn(txn[0],
-                  txn[1],
-                  float(txn[2]),
-                  float(txn[3]),
-                  get_date_int(txn[4], '01/01/2014'),
-                  txn[5],
-                  txn[6] if len(txn) >= 7 else '')
+        obj = Txn(fund_name=txn[positions[0]],
+                  txn_type=txn[positions[1]],
+                  amount=txn[positions[2]],
+                  units=txn[positions[3]],
+                  date=txn[positions[4]]
+                  )
         txn_obj_list.append(obj)
+    
+    # Additional details contained in transactions
+    if amc.lower() == 'uti':
+        for obj in txn_obj_list:
+            obj.remarks = txn[6] if len(txn) >= 7 else None
+    elif amc.lower() == 'icici':
+        for obj in txn_obj_list:
+            obj.nav = float(txn[4])
+    
     return txn_obj_list
 
-# def icicipru_txn_matrix_to_obj_list(txn_matrix):
-#     txn_obj_list = []
-#     for txn in txn_matrix:
-#         obj = Txn(txn[0],
-#                   txn[1],
-#                   float(txn[2]),
-#                   float(txn[3]),
-#                   get_date_int(txn[4], '01/01/2014'),
-#                   txn[5],
-#                   txn[6] if len(txn) >= 7 else '')
-#         txn_obj_list.append(obj)
-#     return txn_obj_list
 
-
-def parse_uti_txn(txn_string):
-    """ Takes transaction status from UTIMF website, and converts
+def parse_txn(txn_string):
+    """ Takes transaction status from UTIMF or ICICI website, and converts
     it to a usable matrix."""
     txn_list = txn_string.strip().split('\n')
     txn_matrix = [line.split('    ') for line in txn_list]
-    if txn_matrix[0][0] == 'Scheme':
+    if txn_matrix[0][0].lower() in ['scheme', 'fund name']:
         txn_matrix = txn_matrix[1:]
+    print txn_matrix
     return txn_matrix
-
-def parse_icicipru_txn(txn_string):
-    txn_list = txn_string.strip().split('\n')
-    txn_matrix = [line.split('    ') for line in txn_list]
-    if txn_matrix[0][0].lower() == 'fund name':
-        txn_matrix = txn_matrix[1:]
-    return txn_matrix
-
-print parse_uti_txn(utimf.txn_str)
 
 def get_mf_data(mf_code, from_ddmmyyyy_str, to_ddmmyyyy_str):
     query_url = get_url(mf_code, from_ddmmyyyy_str, to_ddmmyyyy_str)
@@ -196,12 +249,10 @@ def extract_moneycontrol_data(data_str):
         date_value_list.append((get_date_int(l[0], '01 jan 2014'), float(l[1])))
     return date_value_list
 
-#print extract_moneycontrol_data(get_mf_data('MPI110', intdate_last_month(), intdate_today()))
-#print get_mf_data('MPI110', intdate_last_month(), intdate_today())
-#print get_date_int('04 Feb 2015', '01 Jan 2014')
-#print get_date_int('04/02/2015', '01/01/2014')
+print extract_moneycontrol_data(get_mf_data('MPI110', intdate_last_month(), intdate_today()))
+print get_mf_data('MPI110', intdate_last_month(), intdate_today())
 
-print get_transaction_stats(uti_txn_matrix_to_obj_list(parse_uti_txn(utimf.txn_str)))
+print get_transaction_stats(txn_to_obj_list(utimf.txn_str, 'uti'))
 
 
 
