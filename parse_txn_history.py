@@ -19,11 +19,17 @@
 
 # TODO: while taking data from moneycontrol, also return the date of NAV
 
+# TODO: show the users the profit they're earning on each of the fund
 
-# as on 22 jan wednsday
-#367389.77Total
-#375042.98Current
-#print utimf.txn_str
+# TODO: when a user redeems some units, show how much profit he earned 
+# (assuming he is redeeming the units which were purchased first)
+
+# TODO: give the user a choice to redeem units which were bought 'later', and 
+# not the ones he purchased first.
+
+
+
+
 from examples import utimf
 from examples import icicipru
 
@@ -46,6 +52,7 @@ class Txn(object):
     def __init__(self, fund_name=None, txn_type=None, amount=None, units=None,
                  date=None, status=None, remarks=None):
         self.fund_name = fund_name
+        # TODO: do not distinguish between purchase and new purchase
         if txn_type.lower() in ['purchase', 'new purchase']:
             self.txn_type = 'NEW_PURCHASE'
         elif txn_type.lower() in ['additional purchase']:
@@ -101,8 +108,49 @@ class Txn(object):
 
         self.status = status
         self.remarks = remarks
-        self.fund_id = None
+        self.fund_id = fund_ids[self.fund_name]
         self.nav = None     # NAV on the day the transaction is performed
+
+# class MF(object):
+#     self.name = ''  # MF name
+#     self.txn_list = []  # list of all transactions related to this mf
+#     self.total
+
+def get_detailed_stats(txn_list):
+    # Step 1: form a dict where keys are MF names, and values are all transactions
+    #        for that MF
+    mf_dict = {}
+    txn_list = [txn]
+    for txn in txn_list:
+        mf_dict[txn.fund_name] = []
+    for txn in txn_list:
+        mf_dict[txn.fund_name].append(txn)
+    for mf in mf_dict:
+        mf_dict[mf].sort(key=lambda x: x.date)
+    for mf in mf_dict:
+        no_nav_txn = [txn for txn in mf_dict[mf] if txn.nav is None]
+        if len(no_nav_txn) != 0:
+            # TODO: optimize here too
+            # NOTE: for now, ignore that moneycontrol can have old values for today
+            fill_all_navs_for_fund(mf_dict[mf])
+    
+    
+#    txn_sorted = sorted(txn_list, key=lambda x: x.date)
+    # Inefficient loop, but not expecting too much data, so won't be very slow
+#    get_all_navs(txn_sorted)
+    
+def fill_all_navs_for_fund(txn_list):
+    """ For the given list of Txn object, fetch the NAVs of all the
+    transactions for which this value is not present. All the transactions in txn_list
+    are of same fund"""
+    # Assumption: list is already sorted
+    max_date = txn_list[-1].date
+    min_date = txn_list[0].date
+    date_nav_dict = get_mf_data(txn_list[0].fund_id, min_date, max_date)
+    for txn in txn_list:
+        txn.nav = date_nav_dict[txn.date]
+    print [txn.nav for txn in txn_list]
+
 
 def get_transaction_stats(txn_list):
     purchase_txn = [txn for txn in txn_list if txn.txn_type in 
@@ -133,22 +181,25 @@ def get_transaction_stats(txn_list):
         
     curr_val_dict = get_curr_fund_value(left_units.keys())
         
-    total_amt_invested = 0.0
+    current_valuation = {}
+    for fund in curr_val_dict.keys():
+        current_valuation[fund] = 0.0
     
     for fund in curr_val_dict.keys():
         if left_units[fund] is None:
             continue
-        total_amt_invested += curr_val_dict[fund] * left_units[fund]
+        current_valuation[fund] += curr_val_dict[fund] * left_units[fund]
     
-    return amt_invested, amt_redeemed, total_amt_invested
+    return amt_invested, amt_redeemed, current_valuation
+
 
 def get_curr_fund_value(fund_name_list):
     unit_values = {}
     for fund in fund_name_list:
         fund_id = fund_ids[fund]
-        data_list = extract_moneycontrol_data(get_mf_data(fund_id, 
-                    intdate_last_month(), intdate_today()))
-        unit_values[fund] = data_list[-1][1]
+        data_dict = get_mf_data(fund_id, 
+                    intdate_last_month(), intdate_today())
+        unit_values[fund] = data_dict[max(data_dict)]
     return unit_values
 
 def txn_to_obj_list(txn_string, amc):
@@ -191,9 +242,11 @@ def parse_txn(txn_string):
     return txn_matrix
 
 def get_mf_data(mf_code, from_ddmmyyyy_str, to_ddmmyyyy_str):
+    """ Returns a tuple of date and mutual fund NAV for the given mutual fund,
+    between the given dates"""
     query_url = get_url(mf_code, from_ddmmyyyy_str, to_ddmmyyyy_str)
     resp = urllib2.urlopen(query_url)
-    return resp.read()
+    return extract_moneycontrol_data(resp)
 
 def get_url(mf_code, from_date, to_date):
     from_date = str(from_date)
@@ -248,17 +301,19 @@ def intdate_last_month():
 
 def extract_moneycontrol_data(data_str):
     lines = data_str.split('\n')
-    date_value_list = []
+    date_value_dict = {}
     for line in lines:
         l = line.split(',')
-        date_value_list.append((get_date_int(l[0], '01 jan 2014'), float(l[1])))
-    return date_value_list
+        date_value_dict[get_date_int(l[0], '01 jan 2014')] = float(l[1])
+    return date_value_dict
 
 #print extract_moneycontrol_data(get_mf_data('MPI110', intdate_last_month(), intdate_today()))
 #print get_mf_data('MPI110', intdate_last_month(), intdate_today())
 
-print get_transaction_stats(txn_to_obj_list(utimf.txn_str, 'uti'))
-print get_transaction_stats(txn_to_obj_list(icicipru.txn_str, 'icici'))
+#print get_transaction_stats(txn_to_obj_list(utimf.txn_str, 'uti'))
+#print get_transaction_stats(txn_to_obj_list(icicipru.txn_str, 'icici'))
 
+
+print get_detailed_stats(txn_to_obj_list(utimf.txn_str, 'uti'))
 
 
