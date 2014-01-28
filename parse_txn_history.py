@@ -37,6 +37,11 @@ from examples import icicipru
 import urllib2
 import datetime
 
+# Constants
+NEW_PURCHASE = 1
+ADDITIONAL_PURCHASE = 2
+REDEMPTION = 3
+
 fund_ids = {
     'UTI-BOND FUND - GROWTH': 'MUT021',
     'UTI-TREASURY ADVANTAGE FUND - INSTITUTIONAL PLAN - GROWTH': 'MUT119',
@@ -46,6 +51,7 @@ fund_ids = {
     'ICICI Prudential Technology Fund - Direct Plan - Growth': 'MPI1128',
     'ICICI Prudential Technology Fund - Regular Plan - Growth': 'MPI015',
     'ICICI Prudential Export and Other Services Fund - Regular Plan - Growth': 'MPI110',
+    'blah':'blah'
     }
 
 class Txn(object):
@@ -54,11 +60,11 @@ class Txn(object):
         self.fund_name = fund_name
         # TODO: do not distinguish between purchase and new purchase
         if txn_type.lower() in ['purchase', 'new purchase']:
-            self.txn_type = 'NEW_PURCHASE'
+            self.txn_type = NEW_PURCHASE
         elif txn_type.lower() in ['additional purchase']:
-            self.txn_type = 'ADDITIONAL_PURCHASE'
+            self.txn_type = ADDITIONAL_PURCHASE
         elif txn_type.lower() in ['redemption']:
-            self.txn_type = 'REDEMPTION'
+            self.txn_type = REDEMPTION
         else:
             print "txn type is", txn_type
             raise BaseException
@@ -118,13 +124,14 @@ class Txn(object):
 
 def get_detailed_stats(txn_list):
     # Step 1: form a dict where keys are MF names, and values are all transactions
-    #        for that MF
+    #        for that MF (in list form)
     mf_dict = {}
-    txn_list = [txn]
+#    txn_list = [txn]
     for txn in txn_list:
         mf_dict[txn.fund_name] = []
     for txn in txn_list:
         mf_dict[txn.fund_name].append(txn)
+
     for mf in mf_dict:
         mf_dict[mf].sort(key=lambda x: x.date)
     for mf in mf_dict:
@@ -134,10 +141,61 @@ def get_detailed_stats(txn_list):
             # NOTE: for now, ignore that moneycontrol can have old values for today
             fill_all_navs_for_fund(mf_dict[mf])
     
-    
+    for mf in mf_dict:
+        fill_redemption_stats(mf_dict[mf])
 #    txn_sorted = sorted(txn_list, key=lambda x: x.date)
     # Inefficient loop, but not expecting too much data, so won't be very slow
 #    get_all_navs(txn_sorted)
+
+def fill_redemption_stats(txn_list):
+    # Assumption: txn list is sane, i.e. a guy is not redeeming more units than he
+    # has purchased
+    # Assumption: list is sorted in order of date
+#    import pdb;pdb.set_trace()
+    dup_list = list(txn_list)
+    for t in dup_list:
+        t.sold_units_nav_tuple_list = []
+    
+    for i in range(len(dup_list)):
+        if dup_list[i].txn_type in [REDEMPTION]:
+            units_left = dup_list[i].units
+#            dup_list[i].sold_units_nav_tuple_list = []
+#             import pdb;pdb.set_trace()
+            for j in range(i):
+                if units_left > 0.0:
+                    if dup_list[j].txn_type in [NEW_PURCHASE, ADDITIONAL_PURCHASE]:
+
+                        if units_left < dup_list[j].units:
+                            units_to_deduct = units_left
+                        else:
+                            units_to_deduct = dup_list[j].units
+                        if units_to_deduct > 0.0:
+                            dup_list[i].sold_units_nav_tuple_list.append(
+                                 (units_to_deduct, dup_list[j].nav, ))
+                        dup_list[j].units = dup_list[j].units - units_to_deduct
+                        units_left -= units_to_deduct
+                else:
+                    break
+    txn_list = dup_list
+#    return dup_list
+                        
+# print 'testing testing'  
+# t1 = Txn(fund_name='blah', txn_type='purchase', amount=1000, units=100)
+# t2 = Txn(fund_name='blah', txn_type='redemption', amount=880, units=80)
+# t3 = Txn(fund_name='blah', txn_type='purchase', amount=600, units=50)
+# t4 = Txn(fund_name='blah', txn_type='redemption', amount=650, units=60)
+# t5 = Txn(fund_name='blah', txn_type='redemption', amount=280, units=20)
+# t1.nav = 10.0
+# t2.nav = 11.0
+# t3.nav = 12.0
+# t4.nav = 13.0
+# t5.nav = 14.0
+# fake_txns = [t1, t2, t3, t4, t5]
+# x = fill_redemption_stats(fake_txns)   
+# for t in x:
+#     print t.sold_units_nav_tuple_list 
+# for t in fake_txns:
+#     print t.sold_units_nav_tuple_list     
     
 def fill_all_navs_for_fund(txn_list):
     """ For the given list of Txn object, fetch the NAVs of all the
@@ -154,8 +212,8 @@ def fill_all_navs_for_fund(txn_list):
 
 def get_transaction_stats(txn_list):
     purchase_txn = [txn for txn in txn_list if txn.txn_type in 
-                    ['NEW_PURCHASE', 'ADDITIONAL_PURCHASE']]
-    redemption_txn = [txn for txn in txn_list if txn.txn_type == 'REDEMPTION']
+                    [NEW_PURCHASE, ADDITIONAL_PURCHASE]]
+    redemption_txn = [txn for txn in txn_list if txn.txn_type == REDEMPTION]
 
     amt_invested = sum([txn.amount for txn in purchase_txn])
     amt_redeemed = sum([txn.amount for txn in redemption_txn])
@@ -314,6 +372,6 @@ def extract_moneycontrol_data(data_str):
 #print get_transaction_stats(txn_to_obj_list(icicipru.txn_str, 'icici'))
 
 
-print get_detailed_stats(txn_to_obj_list(utimf.txn_str, 'uti'))
+#print get_detailed_stats(txn_to_obj_list(utimf.txn_str, 'uti'))
 
 
