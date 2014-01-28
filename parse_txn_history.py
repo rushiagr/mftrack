@@ -133,6 +133,11 @@ class Txn(object):
 
 def get_detailed_stats(txn_list):
     mf_dict = {}
+    # TODO: values of mf_dict should be objects, and not list. For those objects
+    # we will add additional attributes like total redemption, total profit in 
+    # redemption, total units still held, total profit in current scenario, etc
+    # BUT make sure you study the implications of having all this information
+    # stored and retrieved from database
 
     for txn in txn_list:
         mf_dict[txn.fund_name] = []
@@ -258,11 +263,8 @@ def get_mf_data(mf_code, from_ddmmyyyy_str, to_ddmmyyyy_str):
     """ Returns a tuple of date and mutual fund NAV for the given mutual fund,
     between the given dates"""
     query_url = get_url(mf_code, from_ddmmyyyy_str, to_ddmmyyyy_str)
-#     print query_url
-    resp = urllib2.urlopen(query_url)
-    resp_data = resp.read()
-#     print 'resp data ijj |%s|' % resp_data
-    return extract_moneycontrol_data(resp_data)
+    resp_str = urllib2.urlopen(query_url).read()
+    return extract_moneycontrol_data(resp_str)
 
 def get_url(mf_code, from_date, to_date):
     from_date = str(from_date)
