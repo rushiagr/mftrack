@@ -146,15 +146,25 @@ def get_detailed_stats(txn_list):
         if len(no_nav_txn) != 0:
             # TODO: optimize here too
             fill_all_navs_for_fund(mf_dict[mf])
-    
+    for fund in mf_dict:
+        for txn in mf_dict[fund]:
+            print txn.nav, txn.txn_type, txn.units, 'elh'
+
     for mf in mf_dict:
         fill_redemption_stats(mf_dict[mf])
+
+    for fund in mf_dict:
+        for txn in mf_dict[fund]:
+            print txn.nav, txn.txn_type, txn.units, 'zzzz'
+    
+    return mf_dict
 
 
 def fill_redemption_stats(txn_list):
     # Assumption: txn list is sane, i.e. a guy is not redeeming more units than he
     # has purchased
     # Assumption: list is sorted in order of date
+    txn_units = list([txn.units for txn in txn_list])
     dup_list = list(txn_list)
     for t in dup_list:
         t.sold_units_nav_tuple_list = []
@@ -177,7 +187,11 @@ def fill_redemption_stats(txn_list):
                         units_left -= units_to_deduct
                 else:
                     break
-    txn_list = dup_list
+#    for orig_txn, dup_txn in zip(txn_list, dup_list):
+#        orig_txn.sold_units_nav_tuple_list = dup_txn.sold_units_nav_tuple_list
+#    txn_list = dup_list
+    for txn, units in zip(txn_list, txn_units):
+        txn.units = units
                         
     
 def fill_all_navs_for_fund(txn_list):
@@ -268,7 +282,6 @@ def txn_to_obj_list(txn_string, amc):
     elif amc.lower() == 'icici':
         for obj in txn_obj_list:
             obj.nav = float(txn[4])
-    
     return txn_obj_list
 
 
@@ -285,8 +298,11 @@ def get_mf_data(mf_code, from_ddmmyyyy_str, to_ddmmyyyy_str):
     """ Returns a tuple of date and mutual fund NAV for the given mutual fund,
     between the given dates"""
     query_url = get_url(mf_code, from_ddmmyyyy_str, to_ddmmyyyy_str)
+#     print query_url
     resp = urllib2.urlopen(query_url)
-    return extract_moneycontrol_data(resp.read())
+    resp_data = resp.read()
+#     print 'resp data ijj |%s|' % resp_data
+    return extract_moneycontrol_data(resp_data)
 
 def get_url(mf_code, from_date, to_date):
     from_date = str(from_date)
@@ -331,7 +347,7 @@ def get_date_int(date_str, date_ref=None):
     # TODO(rushiagr): implement all other types, including pattern matching
 
 def intdate_from_datetime(date):
-    return (date.day*1000000 + date.month*10000 + date.year)
+    return (date.year*10000 + date.month*100 + date.day)
 
 def intdate_today():
     return intdate_from_datetime(datetime.date.today())
@@ -355,8 +371,28 @@ def extract_moneycontrol_data(data_str):
 #print get_transaction_stats(txn_to_obj_list(icicipru.txn_str, 'icici'))
 
 txns = txn_to_obj_list(utimf.txn_str, 'uti')
-get_detailed_stats(txns)
+mf_dict = get_detailed_stats(txns)
 
 for txn in txns:
     if txn.txn_type == REDEMPTION:
         print txn.fund_name, txn.sold_units_nav_tuple_list
+
+def amount_invested_from_list(txn_list):
+    # assumption: txn list contain txn of same fund
+    curr_value = get_curr_fund_value([txn_list[0].fund_name]).values()[0]
+    invested_units = 0.0
+    for txn in txn_list:
+        if txn.txn_type == REDEMPTION:
+            invested_units -= txn.units
+#             print 'redeemed_units: ', txn.units
+        elif txn.txn_type in [NEW_PURCHASE, ADDITIONAL_PURCHASE]:
+            invested_units += txn.units
+#             print 'bought_units: ', txn.units
+    return invested_units * curr_value
+
+for fund in mf_dict:
+    print 'fund: %s value: %s' % (fund, amount_invested_from_list(mf_dict[fund]))
+print sum([amount_invested_from_list(mf_dict[fund]) for fund in mf_dict])
+#print 'mfdict', mf_dict
+
+print get_transaction_stats(txns)
