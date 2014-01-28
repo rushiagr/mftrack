@@ -27,8 +27,18 @@
 # TODO: give the user a choice to redeem units which were bought 'later', and 
 # not the ones he purchased first.
 
+# TODO: get value of NAV from 'units' and 'amount', and not from moneycontrol
 
+# TODO: add these defects to github issues for this project
 
+# fill al these information into database tables
+
+# NOTE: for now, ignore that moneycontrol can have old values for today
+
+# TODOadd mechanism for giving the users updates regarding moneycontrol data (e.g.
+# the data was last modified on moneycontrol server on yesterday, and generally
+# it gets updated at so and so time so you can expect it to become updated again
+# in blah hours
 
 from examples import utimf
 from examples import icicipru
@@ -51,8 +61,8 @@ fund_ids = {
     'ICICI Prudential Technology Fund - Direct Plan - Growth': 'MPI1128',
     'ICICI Prudential Technology Fund - Regular Plan - Growth': 'MPI015',
     'ICICI Prudential Export and Other Services Fund - Regular Plan - Growth': 'MPI110',
-    'blah':'blah'
-    }
+    'blah':'blah',
+}
 
 class Txn(object):
     def __init__(self, fund_name=None, txn_type=None, amount=None, units=None,
@@ -116,17 +126,14 @@ class Txn(object):
         self.remarks = remarks
         self.fund_id = fund_ids[self.fund_name]
         self.nav = None     # NAV on the day the transaction is performed
+        # NOTE: The Txn object will also possess a list 'sold_units_nav_tuple_list' 
+        # later in the processing, which will contain the sold units and the
+        # buying price of them
 
-# class MF(object):
-#     self.name = ''  # MF name
-#     self.txn_list = []  # list of all transactions related to this mf
-#     self.total
 
 def get_detailed_stats(txn_list):
-    # Step 1: form a dict where keys are MF names, and values are all transactions
-    #        for that MF (in list form)
     mf_dict = {}
-#    txn_list = [txn]
+
     for txn in txn_list:
         mf_dict[txn.fund_name] = []
     for txn in txn_list:
@@ -138,20 +145,16 @@ def get_detailed_stats(txn_list):
         no_nav_txn = [txn for txn in mf_dict[mf] if txn.nav is None]
         if len(no_nav_txn) != 0:
             # TODO: optimize here too
-            # NOTE: for now, ignore that moneycontrol can have old values for today
             fill_all_navs_for_fund(mf_dict[mf])
     
     for mf in mf_dict:
         fill_redemption_stats(mf_dict[mf])
-#    txn_sorted = sorted(txn_list, key=lambda x: x.date)
-    # Inefficient loop, but not expecting too much data, so won't be very slow
-#    get_all_navs(txn_sorted)
+
 
 def fill_redemption_stats(txn_list):
     # Assumption: txn list is sane, i.e. a guy is not redeeming more units than he
     # has purchased
     # Assumption: list is sorted in order of date
-#    import pdb;pdb.set_trace()
     dup_list = list(txn_list)
     for t in dup_list:
         t.sold_units_nav_tuple_list = []
@@ -159,8 +162,6 @@ def fill_redemption_stats(txn_list):
     for i in range(len(dup_list)):
         if dup_list[i].txn_type in [REDEMPTION]:
             units_left = dup_list[i].units
-#            dup_list[i].sold_units_nav_tuple_list = []
-#             import pdb;pdb.set_trace()
             for j in range(i):
                 if units_left > 0.0:
                     if dup_list[j].txn_type in [NEW_PURCHASE, ADDITIONAL_PURCHASE]:
@@ -177,25 +178,7 @@ def fill_redemption_stats(txn_list):
                 else:
                     break
     txn_list = dup_list
-#    return dup_list
                         
-# print 'testing testing'  
-# t1 = Txn(fund_name='blah', txn_type='purchase', amount=1000, units=100)
-# t2 = Txn(fund_name='blah', txn_type='redemption', amount=880, units=80)
-# t3 = Txn(fund_name='blah', txn_type='purchase', amount=600, units=50)
-# t4 = Txn(fund_name='blah', txn_type='redemption', amount=650, units=60)
-# t5 = Txn(fund_name='blah', txn_type='redemption', amount=280, units=20)
-# t1.nav = 10.0
-# t2.nav = 11.0
-# t3.nav = 12.0
-# t4.nav = 13.0
-# t5.nav = 14.0
-# fake_txns = [t1, t2, t3, t4, t5]
-# x = fill_redemption_stats(fake_txns)   
-# for t in x:
-#     print t.sold_units_nav_tuple_list 
-# for t in fake_txns:
-#     print t.sold_units_nav_tuple_list     
     
 def fill_all_navs_for_fund(txn_list):
     """ For the given list of Txn object, fetch the NAVs of all the
@@ -207,7 +190,6 @@ def fill_all_navs_for_fund(txn_list):
     date_nav_dict = get_mf_data(txn_list[0].fund_id, min_date, max_date)
     for txn in txn_list:
         txn.nav = date_nav_dict[txn.date]
-    print [txn.nav for txn in txn_list]
 
 
 def get_transaction_stats(txn_list):
@@ -304,7 +286,7 @@ def get_mf_data(mf_code, from_ddmmyyyy_str, to_ddmmyyyy_str):
     between the given dates"""
     query_url = get_url(mf_code, from_ddmmyyyy_str, to_ddmmyyyy_str)
     resp = urllib2.urlopen(query_url)
-    return extract_moneycontrol_data(resp)
+    return extract_moneycontrol_data(resp.read())
 
 def get_url(mf_code, from_date, to_date):
     from_date = str(from_date)
@@ -320,12 +302,12 @@ def get_url(mf_code, from_date, to_date):
                '&range=max' % 
                
         {'mf_id': mf_code,
-         'from_dd': from_date[0:2],
-         'from_mm': from_date[2:4],
-         'from_yyyy': from_date[4:],
-         'to_dd': to_date[0:2],
-         'to_mm': to_date[2:4],
-         'to_yyyy': to_date[4:],
+         'from_dd': from_date[6:],
+         'from_mm': from_date[4:6],
+         'from_yyyy': from_date[0:4],
+         'to_dd': to_date[6:],
+         'to_mm': to_date[4:6],
+         'to_yyyy': to_date[0:4],
          })
     return url_str
 
@@ -338,7 +320,7 @@ def get_date_int(date_str, date_ref=None):
     if date_ref.lower() == '01 jan 2014':
         date = date_str[7:]
         month_int = months.index(date_str[3:6].lower())+1
-        date += str(month_int) if month_int > 10 else '0'+str(month_int)
+        date += str(month_int) if month_int >= 10 else '0'+str(month_int)
         date += date_str[0:2]
         return int(date)
     elif date_ref.lower() == '01/01/2014':
@@ -358,6 +340,7 @@ def intdate_last_month():
     return intdate_from_datetime(datetime.date.today() - datetime.timedelta(days=30))
 
 def extract_moneycontrol_data(data_str):
+    # TODO: add check here if moneycontrol returns no data or bad data
     lines = data_str.split('\n')
     date_value_dict = {}
     for line in lines:
@@ -371,7 +354,9 @@ def extract_moneycontrol_data(data_str):
 #print get_transaction_stats(txn_to_obj_list(utimf.txn_str, 'uti'))
 #print get_transaction_stats(txn_to_obj_list(icicipru.txn_str, 'icici'))
 
+txns = txn_to_obj_list(utimf.txn_str, 'uti')
+get_detailed_stats(txns)
 
-#print get_detailed_stats(txn_to_obj_list(utimf.txn_str, 'uti'))
-
-
+for txn in txns:
+    if txn.txn_type == REDEMPTION:
+        print txn.fund_name, txn.sold_units_nav_tuple_list
