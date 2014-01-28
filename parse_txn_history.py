@@ -206,46 +206,6 @@ def fill_all_navs_for_fund(txn_list):
         txn.nav = date_nav_dict[txn.date]
 
 
-def get_transaction_stats(txn_list):
-    purchase_txn = [txn for txn in txn_list if txn.txn_type in 
-                    [NEW_PURCHASE, ADDITIONAL_PURCHASE]]
-    redemption_txn = [txn for txn in txn_list if txn.txn_type == REDEMPTION]
-
-    amt_invested = sum([txn.amount for txn in purchase_txn])
-    amt_redeemed = sum([txn.amount for txn in redemption_txn])
-
-    purchase_units_dict = {}
-    for txn in purchase_txn:
-        purchase_units_dict[txn.fund_name] = 0.0
-    for txn in purchase_txn:
-        purchase_units_dict[txn.fund_name] += txn.units
-        
-    redemption_units_dict = {}
-    for txn in redemption_txn:
-        redemption_units_dict[txn.fund_name] = 0.0
-    for txn in redemption_txn:
-        redemption_units_dict[txn.fund_name] += txn.units
-
-    left_units = {}
-    # if someone has bought, only then he can sell it
-    # TODO: add a check here if the sold units are more than bought
-    for fund, bought_units in purchase_units_dict.iteritems():
-        sold_units = redemption_units_dict.get(fund)
-        left_units[fund] = bought_units if sold_units is None else (bought_units - sold_units)
-        
-    curr_val_dict = get_curr_fund_value(left_units.keys())
-        
-    current_valuation = {}
-    for fund in curr_val_dict.keys():
-        current_valuation[fund] = 0.0
-    
-    for fund in curr_val_dict.keys():
-        if left_units[fund] is None:
-            continue
-        current_valuation[fund] += curr_val_dict[fund] * left_units[fund]
-    
-    return amt_invested, amt_redeemed, current_valuation
-
 
 def get_curr_fund_value(fund_name_list):
     unit_values = {}
@@ -384,15 +344,10 @@ def amount_invested_from_list(txn_list):
     for txn in txn_list:
         if txn.txn_type == REDEMPTION:
             invested_units -= txn.units
-#             print 'redeemed_units: ', txn.units
         elif txn.txn_type in [NEW_PURCHASE, ADDITIONAL_PURCHASE]:
             invested_units += txn.units
-#             print 'bought_units: ', txn.units
     return invested_units * curr_value
 
 for fund in mf_dict:
     print 'fund: %s value: %s' % (fund, amount_invested_from_list(mf_dict[fund]))
 print sum([amount_invested_from_list(mf_dict[fund]) for fund in mf_dict])
-#print 'mfdict', mf_dict
-
-print get_transaction_stats(txns)
