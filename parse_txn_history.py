@@ -170,7 +170,7 @@ def fill_redemption_stats(txn_list):
                             units_to_deduct = units_left
                         else:
                             units_to_deduct = dup_list[j].units
-                        if units_to_deduct > 0.0:
+                        if units_to_deduct > 0.001:
                             dup_list[i].sold_units_nav_tuple_list.append(
                                  (units_to_deduct, dup_list[j].nav, ))
                         dup_list[j].units = dup_list[j].units - units_to_deduct
