@@ -9,6 +9,7 @@
 # step 4: only take the transactions whose status is 'processed', and remove everything else
 # step 5: see how to handle cases when user pastes second time, which has a transaction which is now in 'processed' state but was in a different state previously
 
+#NOTE: we are using NAV values from only moneycontrol site, and not from amount/units. This should change in future
 
 # TODO(rushiagr): get mutual fund IDs from internet, and not from a dict filled
 # manually
@@ -45,6 +46,7 @@
 from examples import utimf
 from examples import icicipru
 
+from db import TxnRaw, db
 
 import urllib2
 import datetime
@@ -128,6 +130,7 @@ class Txn(object):
         self.remarks = remarks
         self.fund_id = fund_ids[self.fund_name]
         self.nav = None     # NAV on the day the transaction is performed
+        self.amc = None
         # NOTE: The Txn object will also possess a list 'sold_units_nav_tuple_list' 
         # later in the processing, which will contain the sold units and the
         # buying price of them
@@ -220,7 +223,8 @@ def get_curr_fund_value(fund_name_list):
         unit_values[fund] = data_dict[max(data_dict)]
     return unit_values
 
-def txn_to_obj_list(txn_string, amc):
+def txn_to_obj_list(txn_string, amc=None):
+    # TODO: in future, if amc is none, detect it from txn_string
     txn_matrix = parse_txn(txn_string)
     txn_obj_list = []
     if amc.lower() == 'uti':
@@ -241,11 +245,15 @@ def txn_to_obj_list(txn_string, amc):
     
     # Additional details contained in transactions
     if amc.lower() == 'uti':
-        for obj in txn_obj_list:
+        for obj, txn in zip(txn_obj_list, txn_matrix):
             obj.remarks = txn[6] if len(txn) >= 7 else None
     elif amc.lower() == 'icici':
         for obj in txn_obj_list:
             obj.nav = float(txn[4])
+
+    for obj in txn_obj_list:
+        obj.amc = amc.lower() if type(amc) == str else None
+
     return txn_obj_list
 
 
@@ -350,6 +358,59 @@ def amount_invested_from_list(txn_list):
         elif txn.txn_type in [NEW_PURCHASE, ADDITIONAL_PURCHASE]:
             invested_units += txn.units
     return invested_units * curr_value
+
+#### All the user-related functions
+def store_textbox_data_in_db(txtbox_data, amc=None, user_id=None):
+    """Takes the transaction information pasted by user into textbox and
+    put it into DB. The AMC (Asset Management Company) might or might not be
+    provided by the user.
+    """
+    txns = txn_to_obj_list(txtbox_data, amc)
+    user_id = 1  # For now, there is only one user
+    to_db_obj_list = get_db_objects_from_txn_list(txns, user_id)
+    # get transactions from database for that user
+    from_db_obj_list = get_txns_from_db(user_id)    
+    # validate if the data is correct. do all validation checks here
+    validate_existing_and_new_txn_data(to_db_obj_list,
+                                       from_db_obj_list)
+    # get only the new objects to be inserted in db
+    new_db_objs = get_new_db_objects(to_db_obj_list, from_db_obj_list)
+    insert_objects_into_db(new_db_objs)
+
+def insert_objects_into_db(new_db_objs):
+    for obj in new_db_objs:
+        db.session.add(obj)
+    db.session.commit()
+
+def get_new_db_objects(to_db_obj_list, from_db_obj_list):
+    return to_db_obj_list
+
+def validate_existing_and_new_txn_data(to_db_obj_list,
+                                       from_db_obj_list):
+    return
+
+def get_txns_from_db(user_id):
+    return TxnRaw.query.filter_by(user_id=user_id).all()
+
+def get_db_objects_from_txn_list(txn_list, user_id):
+    """Returns DB objects from txn_objs."""
+    db_objs = []
+    for txn_obj in txn_list:
+        db_obj = TxnRaw(txn_obj.fund_name,
+                        txn_obj.amc,
+                        txn_obj.units,
+                        txn_obj.amount,
+                        txn_obj.date,
+                        txn_obj.txn_type,
+                        user_id,
+                        txn_obj.fund_id,
+                        txn_obj.nav,
+                        txn_obj.status,
+                        txn_obj.remarks)
+        db_objs.append(db_obj)
+    return db_objs
+
+store_textbox_data_in_db(utimf.txn_str, amc='uti', user_id=7777)
 
 # for fund in mf_dict:
 #     # not so good way of calculating this information, as it makes a lot of
