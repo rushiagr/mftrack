@@ -38,7 +38,35 @@ class User(db.Model):
 
     def __repr__(self):
         return '<User %r>' % self.username
-        
+    
+class TxnRaw(db.Model):
+    txn_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer)  # 1 for now
+    fund_name = db.Column(db.String(100))
+    fund_house = db.Column(db.String(20))
+    fund_id = db.Column(db.String(10))
+    txn_type = db.Column(db.Integer)
+    units = db.Column(db.Float)
+    nav = db.Column(db.Float)
+    date = db.Column(db.Integer)
+    amount = db.Column(db.Float)
+    status = db.Column(db.String(20))
+    remarks = db.Column(db.String(40))
+
+    def __init__(self, fund_name, fund_house, units, amount, date, txn_type, user_id=None,
+                 fund_id=None, nav=None, status=None, remarks=None):
+        self.fund_name = fund_name
+        self.fund_house = fund_house
+        self.units = units
+        self.amount = amount
+        self.date = date
+        self.txn_type = txn_type
+        self.user_id = user_id
+        self.fund_id = fund_id
+        self.nav = nav
+        self.status = status
+        self.remarks = remarks
+
 # @app.route('/')
 # def hello():
 #     return 'heylow world!ss'
@@ -49,10 +77,13 @@ db.create_all()
 
 admin = User('admin', 'admin@example.com')
 guest = User('guest', 'guest@example.com')
+txn = TxnRaw('blah', 'fake_house', 11.1, 1.1, 20141122, 1, 1)
 #But they are not yet in the database, so lets make sure they are
 
-db.session.add(admin)
-db.session.add(guest)
+#db.session.add(admin)
+
+#db.session.add(guest)
+db.session.add(txn)
 db.session.commit()
 #Accessing the data in database is easy as a pie:
 
@@ -63,3 +94,5 @@ print users
 print admin
 print admin.username
 print admin.email
+
+txns = TxnRaw.query.all()
