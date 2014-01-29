@@ -1,9 +1,7 @@
-TODO
-1. Python script to parse pasted data from popular websites
-	1. just take out all the fields
-	2. store it in database
-	3. see if any entry getting duplicated
 
-2. Python script to get mutual fund data for given interval
+Install flask, flask-sqlalchemy extensions
+ sudo pip install flask
+ sudo pip install Flask-SQLAlchemy
 
-
+Database url: 
+ mysql://root:nova@localhost/<databasename>

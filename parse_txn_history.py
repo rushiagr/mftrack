@@ -35,6 +35,8 @@
 
 # NOTE: for now, ignore that moneycontrol can have old values for today
 
+# TODO check if deriving nav values from units and amount give more accurate final values
+
 # TODOadd mechanism for giving the users updates regarding moneycontrol data (e.g.
 # the data was last modified on moneycontrol server on yesterday, and generally
 # it gets updated at so and so time so you can expect it to become updated again
