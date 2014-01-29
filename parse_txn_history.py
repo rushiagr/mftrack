@@ -194,9 +194,6 @@ def fill_redemption_stats(txn_list):
                         units_left -= units_to_deduct
                 else:
                     break
-#    for orig_txn, dup_txn in zip(txn_list, dup_list):
-#        orig_txn.sold_units_nav_tuple_list = dup_txn.sold_units_nav_tuple_list
-#    txn_list = dup_list
     for txn, units in zip(txn_list, txn_units):
         txn.units = units
                         
@@ -261,17 +258,12 @@ def parse_txn(txn_string):
         txn_matrix = txn_matrix[1:]
     return txn_matrix
 
-def get_mf_data(mf_code, from_ddmmyyyy_str, to_ddmmyyyy_str):
+def get_mf_data(mf_code, from_date, to_date):
     """ Returns a tuple of date and mutual fund NAV for the given mutual fund,
     between the given dates"""
-    query_url = get_url(mf_code, from_ddmmyyyy_str, to_ddmmyyyy_str)
-    resp_str = urllib2.urlopen(query_url).read()
-    return extract_moneycontrol_data(resp_str)
-
-def get_url(mf_code, from_date, to_date):
     from_date = str(from_date)
     to_date = str(to_date)
-    url_str = ('http://moneycontrol.com/mf/mf_info/hist_tech_chart.php?'
+    query_url = ('http://moneycontrol.com/mf/mf_info/hist_tech_chart.php?'
                'im_id=%(mf_id)s'
                '&dd=%(from_dd)s'
                '&mm=%(from_mm)s'
@@ -289,7 +281,9 @@ def get_url(mf_code, from_date, to_date):
          'to_mm': to_date[4:6],
          'to_yyyy': to_date[0:4],
          })
-    return url_str
+
+    resp_str = urllib2.urlopen(query_url).read()
+    return extract_moneycontrol_data(resp_str)
 
 def get_date_int(date_str, date_ref=None):
     """ Returns date in integer form (YYYYMMDD, e.g. 20141231). If the 
@@ -320,6 +314,10 @@ def intdate_last_month():
     return intdate_from_datetime(datetime.date.today() - datetime.timedelta(days=30))
 
 def extract_moneycontrol_data(data_str):
+    """Takes moneycontrol data and converts it in slightly more usable form.
+    
+    Converts '<date>,<value>,<value>,<value>,<value>' string returned by
+    the website into dict with date as key and value is value."""
     # TODO: add check here if moneycontrol returns no data or bad data
     lines = data_str.split('\n')
     date_value_dict = {}
@@ -342,7 +340,8 @@ for txn in txns:
         print txn.fund_name, txn.sold_units_nav_tuple_list
 
 def amount_invested_from_list(txn_list):
-    # assumption: txn list contain txn of same fund
+    """Returns total amount invested for list of transactions of _same_ mutual
+    fund."""
     curr_value = get_curr_fund_value([txn_list[0].fund_name]).values()[0]
     invested_units = 0.0
     for txn in txn_list:
@@ -352,6 +351,8 @@ def amount_invested_from_list(txn_list):
             invested_units += txn.units
     return invested_units * curr_value
 
-for fund in mf_dict:
-    print 'fund: %s value: %s' % (fund, amount_invested_from_list(mf_dict[fund]))
-print sum([amount_invested_from_list(mf_dict[fund]) for fund in mf_dict])
+# for fund in mf_dict:
+#     # not so good way of calculating this information, as it makes a lot of
+#     # calls to moneycontrol website
+#     print 'fund: %s value: %s' % (fund, amount_invested_from_list(mf_dict[fund]))
+# print sum([amount_invested_from_list(mf_dict[fund]) for fund in mf_dict])
