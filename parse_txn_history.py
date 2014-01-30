@@ -48,7 +48,7 @@
 from examples import utimf
 from examples import icicipru
 
-from db import TxnRaw, db
+from db import models
 import utils
 
 import urllib2
@@ -307,8 +307,8 @@ def store_textbox_data_in_db(txtbox_data, amc=None, user_id=None):
 
 def insert_objects_into_db(new_db_objs):
     for obj in new_db_objs:
-        db.session.add(obj)
-    db.session.commit()
+        models.db.session.add(obj)
+    models.db.session.commit()
 
 def get_new_db_objects(to_db_obj_list, from_db_obj_list):
     # NOTE(rushiagr): Assumption: when 2 transactions for say 14th Jan are 
@@ -326,13 +326,13 @@ def validate_existing_and_new_txn_data(to_db_obj_list,
     return
 
 def get_txns_from_db(user_id, amc):
-    return TxnRaw.query.filter_by(user_id=user_id, amc=amc).all()
+    return models.TxnRaw.query.filter_by(user_id=user_id, amc=amc).all()
 
 def get_db_objects_from_txn_list(txn_list, user_id):
     """Returns DB objects from txn_objs."""
     db_objs = []
     for txn_obj in txn_list:
-        db_obj = TxnRaw(txn_obj.fund_name,
+        db_obj = models.TxnRaw(txn_obj.fund_name,
                         txn_obj.amc,
                         txn_obj.units,
                         txn_obj.amount,
