@@ -47,6 +47,7 @@ from examples import utimf
 from examples import icicipru
 
 from db import TxnRaw, db
+import utils
 
 import urllib2
 import datetime
@@ -55,6 +56,8 @@ import datetime
 NEW_PURCHASE = 1
 ADDITIONAL_PURCHASE = 2
 REDEMPTION = 3
+
+PURCHASE = 101
 
 fund_ids = {
     'UTI-BOND FUND - GROWTH': 'MUT021',
@@ -68,67 +71,28 @@ fund_ids = {
     'blah':'blah',
 }
 
+def get_fund_id(fund_name):
+    # to be replaced with a call to database
+    return fund_ids[fund_name]
+
 class Txn(object):
     def __init__(self, fund_name=None, txn_type=None, amount=None, units=None,
                  date=None, status=None, remarks=None):
         self.fund_name = fund_name
-        # TODO: do not distinguish between purchase and new purchase
-        if txn_type.lower() in ['purchase', 'new purchase']:
-            self.txn_type = NEW_PURCHASE
-        elif txn_type.lower() in ['additional purchase']:
-            self.txn_type = ADDITIONAL_PURCHASE
+        if txn_type.lower() in ['purchase', 'new purchase',
+                                'additional purchase']:
+            self.txn_type = PURCHASE
         elif txn_type.lower() in ['redemption']:
             self.txn_type = REDEMPTION
         else:
-            print "txn type is", txn_type
             raise BaseException
         
-        if type(amount) == float:
-            self.amount = amount
-        elif type(amount) == int:
-            self.amount = float(amount)
-        elif type(amount) == str:
-            amount = amount.replace(',', '')
-            try:
-                self.amount = float(amount)
-            except ValueError:
-                print 'amount format not compatible'
-                raise
-
-        if type(units) == float:
-            self.units = units
-        elif type(units) == int:
-            self.units = float(units)
-        elif type(units) == str:
-            units = units.replace(',', '')
-            try:
-                self.units = float(units)
-            except ValueError:
-                print 'units format not compatible'
-                raise
-
-        months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug',
-                  'sep', 'oct', 'nov', 'dec']
-        if type(date) == str:
-            # Date format '01/01/2014' (DD/MM/YYYY)
-            if len(date) == 10 and date[2] == date[5] == '/':
-                self.date = int(date[6:10]+date[3:5]+date[0:2])
-            # Date format '01 Jan 2014' or '01-jan-2014'
-            elif len(date) == 11 and date[3:6].lower() in months:
-                month_int = months.index(date[3:6].lower())+1
-                month = ('%2s' % month_int).replace(' ', '0')
-                self.date = int(date[7:11]+month+date[0:2])
-            else:
-                raise
-        elif type(date) == int:
-            if date < 20300000 and date > 19500000:
-                self.date = date
-            else:
-                raise
-
+        self.amount = utils.get_float(amount)
+        self.units = utils.get_float(units)
+        self.date = utils.int_date(date)
         self.status = status
         self.remarks = remarks
-        self.fund_id = fund_ids[self.fund_name]
+        self.fund_id = get_fund_id(fund_name)
         self.nav = None     # NAV on the day the transaction is performed
         self.amc = None
         # NOTE: The Txn object will also possess a list 'sold_units_nav_tuple_list' 
@@ -177,8 +141,7 @@ def fill_redemption_stats(txn_list):
             units_left = dup_list[i].units
             for j in range(i):
                 if units_left > 0.0:
-                    if dup_list[j].txn_type in [NEW_PURCHASE, ADDITIONAL_PURCHASE]:
-
+                    if dup_list[j].txn_type == PURCHASE:
                         if units_left < dup_list[j].units:
                             units_to_deduct = units_left
                         else:
@@ -210,9 +173,8 @@ def fill_all_navs_for_fund(txn_list):
 def get_curr_fund_value(fund_name_list):
     unit_values = {}
     for fund in fund_name_list:
-        fund_id = fund_ids[fund]
-        data_dict = get_mf_data(fund_id, 
-                    intdate_last_month(), intdate_today())
+        fund_id = get_fund_id(fund)
+        data_dict = get_mf_data(fund_id, utils.last_month(), utils.today())
         unit_values[fund] = data_dict[max(data_dict)]
     return unit_values
 
@@ -286,33 +248,6 @@ def get_mf_data(mf_code, from_date, to_date):
     resp_str = urllib2.urlopen(query_url).read()
     return extract_moneycontrol_data(resp_str)
 
-def get_date_int(date_str, date_ref=None):
-    """ Returns date in integer form (YYYYMMDD, e.g. 20141231). If the 
-    date_ref is provided, it will use that as a guide for conversion.
-    Example of date_ref: '01 Jan 2014'"""
-    months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep',
-              'oct', 'nov', 'dec']
-    if date_ref.lower() == '01 jan 2014':
-        date = date_str[7:]
-        month_int = months.index(date_str[3:6].lower())+1
-        date += str(month_int) if month_int >= 10 else '0'+str(month_int)
-        date += date_str[0:2]
-        return int(date)
-    elif date_ref.lower() == '01/01/2014':
-        date = date_str[6:] + date_str[3:5] + date_str[0:2] 
-        return int(date)
-    else:
-        raise
-    # TODO(rushiagr): implement all other types, including pattern matching
-
-def intdate_from_datetime(date):
-    return (date.year*10000 + date.month*100 + date.day)
-
-def intdate_today():
-    return intdate_from_datetime(datetime.date.today())
-
-def intdate_last_month():
-    return intdate_from_datetime(datetime.date.today() - datetime.timedelta(days=30))
 
 def extract_moneycontrol_data(data_str):
     """Takes moneycontrol data and converts it in slightly more usable form.
@@ -324,7 +259,7 @@ def extract_moneycontrol_data(data_str):
     date_value_dict = {}
     for line in lines:
         l = line.split(',')
-        date_value_dict[get_date_int(l[0], '01 jan 2014')] = float(l[1])
+        date_value_dict[utils.int_date(l[0])] = float(l[1])
     return date_value_dict
 
 #print extract_moneycontrol_data(get_mf_data('MPI110', intdate_last_month(), intdate_today()))
@@ -345,11 +280,12 @@ def amount_invested_from_list(txn_list):
     for txn in txn_list:
         if txn.txn_type == REDEMPTION:
             invested_units -= txn.units
-        elif txn.txn_type in [NEW_PURCHASE, ADDITIONAL_PURCHASE]:
+        elif txn.txn_type == PURCHASE:
             invested_units += txn.units
     return invested_units * curr_value
 
 #### All the user-related functions
+
 def store_textbox_data_in_db(txtbox_data, amc=None, user_id=None):
     """Takes the transaction information pasted by user into textbox and
     put it into DB. The AMC (Asset Management Company) might or might not be
@@ -408,8 +344,8 @@ def get_db_objects_from_txn_list(txn_list, user_id):
         db_objs.append(db_obj)
     return db_objs
 
-store_textbox_data_in_db(utimf.txn_str, amc='uti', user_id=7777)
-store_textbox_data_in_db(icicipru.txn_str, amc='icici', user_id=6666)
+#store_textbox_data_in_db(utimf.txn_str, amc='uti', user_id=7777)
+#store_textbox_data_in_db(icicipru.txn_str, amc='icici', user_id=6666)
 
 # for fund in mf_dict:
 #     # not so good way of calculating this information, as it makes a lot of
