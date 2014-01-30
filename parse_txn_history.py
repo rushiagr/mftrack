@@ -14,6 +14,8 @@
 # TODO(rushiagr): get mutual fund IDs from internet, and not from a dict filled
 # manually
 
+# TODO(rushiagr): Use database's transaction object, and remove Txn
+
 # TODO: auto-detect the company of transaction pasted
 
 # TODO: Store NAV in Txn object
