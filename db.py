@@ -96,5 +96,5 @@ print admin
 print admin.username
 print admin.email
 
-txns = TxnRaw.query.filter_by(user_id=31).all()
-print [txn.txn_id for txn in txns]
+txns = TxnRaw.query.filter_by(user_id=1).all()
+print [txn.date for txn in txns]

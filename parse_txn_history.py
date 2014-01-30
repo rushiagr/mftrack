@@ -156,16 +156,9 @@ def get_detailed_stats(txn_list):
         if len(no_nav_txn) != 0:
             # TODO: optimize here too
             fill_all_navs_for_fund(mf_dict[mf])
-    for fund in mf_dict:
-        for txn in mf_dict[fund]:
-            print txn.nav, txn.txn_type, txn.units, 'elh'
 
     for mf in mf_dict:
         fill_redemption_stats(mf_dict[mf])
-
-    for fund in mf_dict:
-        for txn in mf_dict[fund]:
-            print txn.nav, txn.txn_type, txn.units, 'zzzz'
     
     return mf_dict
 
@@ -343,9 +336,6 @@ def extract_moneycontrol_data(data_str):
 txns = txn_to_obj_list(utimf.txn_str, 'uti')
 mf_dict = get_detailed_stats(txns)
 
-for txn in txns:
-    if txn.txn_type == REDEMPTION:
-        print txn.fund_name, txn.sold_units_nav_tuple_list
 
 def amount_invested_from_list(txn_list):
     """Returns total amount invested for list of transactions of _same_ mutual
@@ -369,7 +359,7 @@ def store_textbox_data_in_db(txtbox_data, amc=None, user_id=None):
     user_id = 1  # For now, there is only one user
     to_db_obj_list = get_db_objects_from_txn_list(txns, user_id)
     # get transactions from database for that user
-    from_db_obj_list = get_txns_from_db(user_id)    
+    from_db_obj_list = get_txns_from_db(user_id, amc)    
     # validate if the data is correct. do all validation checks here
     validate_existing_and_new_txn_data(to_db_obj_list,
                                        from_db_obj_list)
@@ -383,14 +373,22 @@ def insert_objects_into_db(new_db_objs):
     db.session.commit()
 
 def get_new_db_objects(to_db_obj_list, from_db_obj_list):
+    # NOTE(rushiagr): Assumption: when 2 transactions for say 14th Jan are 
+    # stored into database, and if three transactions are found for 14th jan,
+    # reject the third one, or raise an exception. This is sane, as AMC
+    # websites generally update this information at once, for a day.
+    to_db_obj_list.sort(key=lambda x: x.date)
+    from_db_obj_list.sort(key=lambda x: x.date)
+    max_date_from_db = from_db_obj_list[-1]
+    to_db_obj_list = [obj for obj in to_db_obj_list if obj.date > max_date_from_db]
     return to_db_obj_list
 
 def validate_existing_and_new_txn_data(to_db_obj_list,
                                        from_db_obj_list):
     return
 
-def get_txns_from_db(user_id):
-    return TxnRaw.query.filter_by(user_id=user_id).all()
+def get_txns_from_db(user_id, amc):
+    return TxnRaw.query.filter_by(user_id=user_id, amc=amc).all()
 
 def get_db_objects_from_txn_list(txn_list, user_id):
     """Returns DB objects from txn_objs."""
@@ -411,6 +409,7 @@ def get_db_objects_from_txn_list(txn_list, user_id):
     return db_objs
 
 store_textbox_data_in_db(utimf.txn_str, amc='uti', user_id=7777)
+store_textbox_data_in_db(icicipru.txn_str, amc='icici', user_id=6666)
 
 # for fund in mf_dict:
 #     # not so good way of calculating this information, as it makes a lot of
