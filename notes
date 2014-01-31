@@ -50,8 +50,5 @@ txns = TxnRaw.query.filter_by(user_id=1).all()
 print [txn.date for txn in txns]
 
 
-# @app.route('/')
-# def hello():
-#     return 'heylow world!ss'
 
 

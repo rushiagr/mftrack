@@ -1,12 +1,5 @@
-from flask import Flask
-from flask.ext.sqlalchemy import SQLAlchemy
+from app import db
 
-app = Flask(__name__)
-
-# TODO: put this sensitive information into a new configuration file
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:nova@localhost/rushi'
-db = SQLAlchemy(app)
-    
 class TxnRaw(db.Model):
     """Contains raw transactions from copied files."""
     txn_id = db.Column(db.Integer, primary_key=True)
