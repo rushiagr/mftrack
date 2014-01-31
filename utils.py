@@ -6,7 +6,7 @@ def get_float(val):
         return val
     elif type(val) == int:
         return float(val)
-    elif type(val) == str:
+    elif type(val) in [str, unicode]:
         val = val.replace(',', '')
         try:
             return float(val)
@@ -16,7 +16,7 @@ def get_float(val):
 def int_date(date):
     months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug',
               'sep', 'oct', 'nov', 'dec']
-    if type(date) == str:
+    if type(date) in [str, unicode]:
         # Date format '01/01/2014' (DD/MM/YYYY)
         if (len(date) == 10 and date[2] == date[5] and 
                                             date[2] in ['/', '.', '-']):

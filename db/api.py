@@ -1,3 +1,6 @@
+from models import TxnRaw
+from app import db
+
 fund_ids = {
     'UTI-BOND FUND - GROWTH': 'MUT021',
     'UTI-TREASURY ADVANTAGE FUND - INSTITUTIONAL PLAN - GROWTH': 'MUT119',
@@ -10,6 +13,57 @@ fund_ids = {
     'blah':'blah',
 }
 
+def unpack_transactions(txn_list):
+    """Converts list of DB transaction objects to list of dicts."""
+    return_list = []
+    for txn in txn_list:
+        obj = {}
+        obj['fund_name'] = txn.fund_name
+        obj['txn_type'] = txn.txn_type
+        obj['amount'] = txn.amount
+        obj['units'] = txn.units
+        obj['date'] = txn.date
+        obj['status'] = txn.status
+        obj['remarks'] = txn.remarks
+        obj['txn_id'] = txn.txn_id
+        obj['user_id'] = txn.user_id
+        obj['amc'] = txn.amc
+        obj['nav'] = txn.nav
+        obj['fund_id'] = txn.fund_id
+        return_list.append(obj)
+    return return_list
+
+def store_transactions(txn_list):
+    for txn in txn_list:
+        db.session.add(TxnRaw(txn))
+    db.session.commit()
+    
+
 def get_fund_id(fund_name):
     # to be replaced with a call to database
     return fund_ids[fund_name]
+
+def get_all_transactions_for_user(user_id): # TODO add sorted flag
+    txns = TxnRaw.query.filter_by(user_id=user_id).all()
+    return unpack_transactions(txns)
+
+def get_txns_from_db(user_id, amc):
+    return TxnRaw.query.filter_by(user_id=user_id, amc=amc).all()
+
+def get_db_objects_from_txn_list(txn_list, user_id):
+    """Returns DB objects from txn_objs."""
+    db_objs = []
+    for txn_obj in txn_list:
+        db_obj = TxnRaw(txn_obj['fund_name'],
+                        txn_obj['amc'],
+                        txn_obj['units'],
+                        txn_obj['amount'],
+                        txn_obj['date'],
+                        txn_obj['txn_type'],
+                        user_id,
+                        txn_obj['fund_id'],
+                        txn_obj['nav'],
+                        txn_obj['status'],
+                        txn_obj['remarks'])
+        db_objs.append(db_obj)
+    return db_objs

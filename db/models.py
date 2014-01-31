@@ -15,16 +15,16 @@ class TxnRaw(db.Model):
     status = db.Column(db.String(20))
     remarks = db.Column(db.String(60))
 
-    def __init__(self, fund_name, amc, units, amount, date, txn_type, user_id=None,
-                 fund_id=None, nav=None, status=None, remarks=None):
-        self.fund_name = fund_name
-        self.amc = amc
-        self.units = units
-        self.amount = amount
-        self.date = date
-        self.txn_type = txn_type
-        self.user_id = user_id
-        self.fund_id = fund_id
-        self.nav = nav
-        self.status = status
-        self.remarks = remarks
+    def __init__(self, txn_dict):
+        self.fund_name = txn_dict.get('fund_name')
+        self.amc = txn_dict.get('amc')
+        self.units = txn_dict.get('units')
+        self.amount = txn_dict.get('amount')
+        self.date = txn_dict.get('date')
+        self.txn_type = txn_dict.get('txn_type')
+        self.user_id = txn_dict.get('user_id')
+        self.fund_id = txn_dict.get('fund_id')
+        self.nav = txn_dict.get('nav')
+        self.status = txn_dict.get('status')
+        self.remarks = txn_dict.get('remarks')
+

@@ -65,6 +65,8 @@ REDEMPTION = 3
 
 PURCHASE = 101
 
+def get_txns():
+    return db.get_all_transactions_for_user(1)
 
 class Txn(object):
     def __init__(self, fund_name=None, txn_type=None, amount=None, units=None,
@@ -100,14 +102,14 @@ def get_detailed_stats(txn_list):
     # stored and retrieved from database
 
     for txn in txn_list:
-        mf_dict[txn.fund_name] = []
+        mf_dict[txn['fund_name']] = []
     for txn in txn_list:
-        mf_dict[txn.fund_name].append(txn)
+        mf_dict[txn['fund_name']].append(txn)
 
     for mf in mf_dict:
-        mf_dict[mf].sort(key=lambda x: x.date)
+        mf_dict[mf].sort(key=lambda x: x['date'])
     for mf in mf_dict:
-        no_nav_txn = [txn for txn in mf_dict[mf] if txn.nav is None]
+        no_nav_txn = [txn for txn in mf_dict[mf] if txn['nav'] is None]
         if len(no_nav_txn) != 0:
             # TODO: optimize here too
             fill_all_navs_for_fund(mf_dict[mf])
@@ -122,42 +124,42 @@ def fill_redemption_stats(txn_list):
     # Assumption: txn list is sane, i.e. a guy is not redeeming more units than he
     # has purchased
     # Assumption: list is sorted in order of date
-    txn_units = list([txn.units for txn in txn_list])
+    txn_units = list([txn['units'] for txn in txn_list])
     dup_list = list(txn_list)
     for t in dup_list:
-        t.sold_units_nav_tuple_list = []
+        t['sold_units_nav_tuple_list'] = []
     
     for i in range(len(dup_list)):
-        if dup_list[i].txn_type in [REDEMPTION]:
-            units_left = dup_list[i].units
+        if dup_list[i]['txn_type'] in [REDEMPTION]:
+            units_left = dup_list[i]['units']
             for j in range(i):
                 if units_left > 0.0:
-                    if dup_list[j].txn_type == PURCHASE:
-                        if units_left < dup_list[j].units:
+                    if dup_list[j]['txn_type'] == PURCHASE:
+                        if units_left < dup_list[j]['units']:
                             units_to_deduct = units_left
                         else:
-                            units_to_deduct = dup_list[j].units
+                            units_to_deduct = dup_list[j]['units']
                         if units_to_deduct > 0.001:
-                            dup_list[i].sold_units_nav_tuple_list.append(
-                                 (units_to_deduct, dup_list[j].nav, ))
-                        dup_list[j].units = dup_list[j].units - units_to_deduct
+                            dup_list[i]['sold_units_nav_tuple_list'].append(
+                                 (units_to_deduct, dup_list[j]['nav'], ))
+                        dup_list[j]['units'] = dup_list[j]['units'] - units_to_deduct
                         units_left -= units_to_deduct
                 else:
                     break
     for txn, units in zip(txn_list, txn_units):
-        txn.units = units
-                        
+        txn['units'] = units
+
     
 def fill_all_navs_for_fund(txn_list):
     """ For the given list of Txn object, fetch the NAVs of all the
     transactions for which this value is not present. All the transactions in txn_list
     are of same fund"""
     # Assumption: list is already sorted
-    max_date = txn_list[-1].date
-    min_date = txn_list[0].date
-    date_nav_dict = get_mf_data(txn_list[0].fund_id, min_date, max_date)
+    max_date = txn_list[-1]['date']
+    min_date = txn_list[0]['date']
+    date_nav_dict = get_mf_data(txn_list[0]['fund_id'], min_date, max_date)
     for txn in txn_list:
-        txn.nav = date_nav_dict[txn.date]
+        txn['nav'] = date_nav_dict[txn['date']]
 
 
 
@@ -169,8 +171,9 @@ def get_curr_fund_value(fund_name_list):
         unit_values[fund] = data_dict[max(data_dict)]
     return unit_values
 
-def txn_to_obj_list(txn_string, amc=None):
+def txn_to_obj_list(txn_string, amc=None, user_id=None):
     # TODO: in future, if amc is none, detect it from txn_string
+    
     txn_matrix = parse_txn(txn_string)
     txn_obj_list = []
     if amc.lower() == 'uti':
@@ -181,24 +184,43 @@ def txn_to_obj_list(txn_string, amc=None):
         raise
 
     for txn in txn_matrix:
-        obj = Txn(fund_name=txn[positions[0]],
+        print txn
+        print utils.get_float(txn[positions[3]])
+        obj = dict(fund_name=txn[positions[0]],
                   txn_type=txn[positions[1]],
-                  amount=txn[positions[2]],
-                  units=txn[positions[3]],
-                  date=txn[positions[4]]
-                  )
+                  amount=utils.get_float(txn[positions[2]]),
+                  units=utils.get_float(txn[positions[3]]),
+                  date=utils.int_date(txn[positions[4]]))
         txn_obj_list.append(obj)
+    
+    for txn in txn_obj_list:        
+        if txn['txn_type'].lower() in ['purchase', 'new purchase',
+                                'additional purchase']:
+            txn['txn_type'] = PURCHASE
+        elif txn['txn_type'].lower() in ['redemption']:
+            txn['txn_type'] = REDEMPTION
+        else:
+            raise BaseException
+
+
     
     # Additional details contained in transactions
     if amc.lower() == 'uti':
         for obj, txn in zip(txn_obj_list, txn_matrix):
-            obj.remarks = txn[6] if len(txn) >= 7 else None
+            obj['remarks'] = txn[6].strip() if len(txn) >= 7 else ''
     elif amc.lower() == 'icici':
         for obj in txn_obj_list:
-            obj.nav = float(txn[4])
+            obj['nav'] = float(txn[4])
 
     for obj in txn_obj_list:
-        obj.amc = amc.lower() if type(amc) == str else None
+        obj['amc'] = amc.lower() if amc.lower() in ['icici', 'uti'] else ''
+    
+    for obj in txn_obj_list:
+        obj['user_id'] = user_id
+        
+    # TODO Do not make this much api calls to db!!
+    for obj in txn_obj_list:
+        obj['fund_id'] = db.get_fund_id(obj['fund_name'])
 
     return txn_obj_list
 
@@ -259,8 +281,8 @@ def extract_moneycontrol_data(data_str):
 #print get_transaction_stats(txn_to_obj_list(utimf.txn_str, 'uti'))
 #print get_transaction_stats(txn_to_obj_list(icicipru.txn_str, 'icici'))
 
-txns = txn_to_obj_list(utimf.txn_str, 'uti')
-mf_dict = get_detailed_stats(txns)
+# txns = txn_to_obj_list(utimf.txn_str, 'uti')
+# mf_dict = get_detailed_stats(txns)
 
 
 def amount_invested_from_list(txn_list):
@@ -277,6 +299,18 @@ def amount_invested_from_list(txn_list):
 
 #### All the user-related functions
 
+
+
+def store_transactions(txtbox_data, amc, user_id):
+    txns = txn_to_obj_list(txtbox_data, amc, user_id)
+    db.store_transactions(txns)
+
+
+
+
+
+#===waste
+
 def store_textbox_data_in_db(txtbox_data, amc=None, user_id=None):
     """Takes the transaction information pasted by user into textbox and
     put it into DB. The AMC (Asset Management Company) might or might not be
@@ -284,15 +318,19 @@ def store_textbox_data_in_db(txtbox_data, amc=None, user_id=None):
     """
     txns = txn_to_obj_list(txtbox_data, amc)
     user_id = 1  # For now, there is only one user
-    to_db_obj_list = get_db_objects_from_txn_list(txns, user_id)
+    to_db_obj_list = db.get_db_objects_from_txn_list(txns, user_id)
     # get transactions from database for that user
-    from_db_obj_list = get_txns_from_db(user_id, amc)    
+    from_db_obj_list = db.get_txns_from_db(user_id, amc)    
     # validate if the data is correct. do all validation checks here
     validate_existing_and_new_txn_data(to_db_obj_list,
                                        from_db_obj_list)
     # get only the new objects to be inserted in db
     new_db_objs = get_new_db_objects(to_db_obj_list, from_db_obj_list)
     insert_objects_into_db(new_db_objs)
+
+
+
+
 
 def insert_objects_into_db(new_db_objs):
     for obj in new_db_objs:
@@ -304,6 +342,8 @@ def get_new_db_objects(to_db_obj_list, from_db_obj_list):
     # stored into database, and if three transactions are found for 14th jan,
     # reject the third one, or raise an exception. This is sane, as AMC
     # websites generally update this information at once, for a day.
+    if not from_db_obj_list:
+        return to_db_obj_list
     to_db_obj_list.sort(key=lambda x: x.date)
     from_db_obj_list.sort(key=lambda x: x.date)
     max_date_from_db = from_db_obj_list[-1]
@@ -314,26 +354,9 @@ def validate_existing_and_new_txn_data(to_db_obj_list,
                                        from_db_obj_list):
     return
 
-def get_txns_from_db(user_id, amc):
-    return models.TxnRaw.query.filter_by(user_id=user_id, amc=amc).all()
 
-def get_db_objects_from_txn_list(txn_list, user_id):
-    """Returns DB objects from txn_objs."""
-    db_objs = []
-    for txn_obj in txn_list:
-        db_obj = models.TxnRaw(txn_obj.fund_name,
-                        txn_obj.amc,
-                        txn_obj.units,
-                        txn_obj.amount,
-                        txn_obj.date,
-                        txn_obj.txn_type,
-                        user_id,
-                        txn_obj.fund_id,
-                        txn_obj.nav,
-                        txn_obj.status,
-                        txn_obj.remarks)
-        db_objs.append(db_obj)
-    return db_objs
+
+
 
 #store_textbox_data_in_db(utimf.txn_str, amc='uti', user_id=7777)
 #store_textbox_data_in_db(icicipru.txn_str, amc='icici', user_id=6666)
