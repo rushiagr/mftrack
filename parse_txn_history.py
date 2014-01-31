@@ -30,6 +30,9 @@
 # TODO: give the user a choice to redeem units which were bought 'later', and 
 # not the ones he purchased first.
 
+# Note : do not use NAV value from icici bank at all. it is usually outdated,
+# and doesnt match with amount divided by units
+
 # TODO: get value of NAV from 'units' and 'amount', and not from moneycontrol
 
 # TODO: add these defects to github issues for this project
@@ -49,6 +52,7 @@ from examples import utimf
 from examples import icicipru
 
 from db import models
+from db import api as db
 import utils
 
 import urllib2
@@ -61,21 +65,6 @@ REDEMPTION = 3
 
 PURCHASE = 101
 
-fund_ids = {
-    'UTI-BOND FUND - GROWTH': 'MUT021',
-    'UTI-TREASURY ADVANTAGE FUND - INSTITUTIONAL PLAN - GROWTH': 'MUT119',
-    'UTI-NIFTY INDEX FUND - GROWTH': 'MUT029',
-    'UTI-NIFTY INDEX FUND - DIVIDEND': 'MUT087',
-    'ICICI Prudential US Bluechip Equity Fund - Regular Plan - Growth': 'MPI1065',
-    'ICICI Prudential Technology Fund - Direct Plan - Growth': 'MPI1128',
-    'ICICI Prudential Technology Fund - Regular Plan - Growth': 'MPI015',
-    'ICICI Prudential Export and Other Services Fund - Regular Plan - Growth': 'MPI110',
-    'blah':'blah',
-}
-
-def get_fund_id(fund_name):
-    # to be replaced with a call to database
-    return fund_ids[fund_name]
 
 class Txn(object):
     def __init__(self, fund_name=None, txn_type=None, amount=None, units=None,
@@ -94,7 +83,7 @@ class Txn(object):
         self.date = utils.int_date(date)
         self.status = status
         self.remarks = remarks
-        self.fund_id = get_fund_id(fund_name)
+        self.fund_id = db.get_fund_id(fund_name)
         self.nav = None     # NAV on the day the transaction is performed
         self.amc = None
         # NOTE: The Txn object will also possess a list 'sold_units_nav_tuple_list' 
@@ -175,7 +164,7 @@ def fill_all_navs_for_fund(txn_list):
 def get_curr_fund_value(fund_name_list):
     unit_values = {}
     for fund in fund_name_list:
-        fund_id = get_fund_id(fund)
+        fund_id = db.get_fund_id(fund)
         data_dict = get_mf_data(fund_id, utils.last_month(), utils.today())
         unit_values[fund] = data_dict[max(data_dict)]
     return unit_values
