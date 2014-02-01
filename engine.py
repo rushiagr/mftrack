@@ -184,8 +184,6 @@ def txn_to_obj_list(txn_string, amc=None, user_id=None):
         raise
 
     for txn in txn_matrix:
-        print txn
-        print utils.get_float(txn[positions[3]])
         obj = dict(fund_name=txn[positions[0]],
                   txn_type=txn[positions[1]],
                   amount=utils.get_float(txn[positions[2]]),
@@ -208,9 +206,11 @@ def txn_to_obj_list(txn_string, amc=None, user_id=None):
     if amc.lower() == 'uti':
         for obj, txn in zip(txn_obj_list, txn_matrix):
             obj['remarks'] = txn[6].strip() if len(txn) >= 7 else ''
-    elif amc.lower() == 'icici':
-        for obj in txn_obj_list:
-            obj['nav'] = float(txn[4])
+
+# DO NOT STORE ICICI NAV. IT IS SoMETIMES AN OLD VALUE
+#     elif amc.lower() == 'icici':
+#         for obj, txn in zip(txn_obj_list, txn_matrix):
+#             obj['nav'] = float(txn[4])
 
     for obj in txn_obj_list:
         obj['amc'] = amc.lower() if amc.lower() in ['icici', 'uti'] else ''

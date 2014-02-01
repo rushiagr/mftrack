@@ -1,5 +1,5 @@
-from models import TxnRaw
 from app import db
+import models
 
 fund_ids = {
     'UTI-BOND FUND - GROWTH': 'MUT021',
@@ -35,7 +35,7 @@ def unpack_transactions(txn_list):
 
 def store_transactions(txn_list):
     for txn in txn_list:
-        db.session.add(TxnRaw(txn))
+        db.session.add(models.TxnRaw(txn))
     db.session.commit()
     
 
@@ -44,17 +44,18 @@ def get_fund_id(fund_name):
     return fund_ids[fund_name]
 
 def get_all_transactions_for_user(user_id): # TODO add sorted flag
-    txns = TxnRaw.query.filter_by(user_id=user_id).all()
+    txns = models.TxnRaw.query.all()
+    print 'txns', txns
     return unpack_transactions(txns)
 
 def get_txns_from_db(user_id, amc):
-    return TxnRaw.query.filter_by(user_id=user_id, amc=amc).all()
+    return models.TxnRaw.query.filter_by(user_id=user_id, amc=amc).all()
 
 def get_db_objects_from_txn_list(txn_list, user_id):
     """Returns DB objects from txn_objs."""
     db_objs = []
     for txn_obj in txn_list:
-        db_obj = TxnRaw(txn_obj['fund_name'],
+        db_obj = models.TxnRaw(txn_obj['fund_name'],
                         txn_obj['amc'],
                         txn_obj['units'],
                         txn_obj['amount'],

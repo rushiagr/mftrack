@@ -12,7 +12,7 @@ class TxnRaw(db.Model):
     nav = db.Column(db.Float)
     date = db.Column(db.Integer)
     amount = db.Column(db.Float)
-    status = db.Column(db.String(20))
+    status = db.Column(db.String(20)) #TODO: remove this field
     remarks = db.Column(db.String(60))
 
     def __init__(self, txn_dict):
@@ -27,4 +27,3 @@ class TxnRaw(db.Model):
         self.nav = txn_dict.get('nav')
         self.status = txn_dict.get('status')
         self.remarks = txn_dict.get('remarks')
-
