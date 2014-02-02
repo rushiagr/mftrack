@@ -6,6 +6,15 @@
     </head>
 
     <body>
+    
+    	{% with msgs = get_flashed_messages() %}
+    	{% if msgs %}
+    		{% for msg in msgs %}
+    			<h1>{{ msg }}</h1>
+    		{% endfor %}
+		{% endif %}
+		{% endwith %}
+    
     	<b>Important statistics: </b><br>
         Total amount invested: {{ stats['total_amount_invested'] }} <br>
         Total amount now: {{ stats['total_amount_now'] }} <br>
