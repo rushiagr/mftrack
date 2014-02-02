@@ -130,7 +130,7 @@ def get_detailed_stats(txn_list):
     stats = {}
     stats['total_amount_invested'] = sum([mf_dict[mf]['total_amount_invested'] for mf in mf_dict])
     stats['total_amount_now'] = sum([mf_dict[mf]['total_amount_now'] for mf in mf_dict])
-    stats['percentage_gains'] = stats['total_amount_now']/stats['total_amount_invested']*100.0 - 100.0
+    stats['percentage_gains'] = stats['total_amount_now']/stats['total_amount_invested']*100.0 - 100.0 if stats['total_amount_invested'] != 0.0 else 0.0
     return mf_dict, stats
 
 
@@ -244,7 +244,7 @@ def parse_txn(txn_string):
     """ Takes transaction status from UTIMF or ICICI website, and converts
     it to a usable matrix."""
     txn_list = txn_string.strip().split('\n')
-    txn_matrix = [line.split('    ') for line in txn_list]
+    txn_matrix = [line.split('    ') if len(line.split('    ')) > 3 else line.split('\t') for line in txn_list ]
     if txn_matrix[0][0].lower() in ['scheme', 'fund name']:
         txn_matrix = txn_matrix[1:]
     return txn_matrix
@@ -320,7 +320,9 @@ def amount_invested_from_list(txn_list):
 
 
 def store_transactions(txtbox_data, amc, user_id):
+    last_date = db.get_last_transaction_date(user_id, amc)
     txns = txn_to_obj_list(txtbox_data, amc, user_id)
+    txns = [txn for txn in txns if txn['date'] > last_date]
     db.store_transactions(txns)
 
 def get_summary(user_id):

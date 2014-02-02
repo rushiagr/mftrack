@@ -51,6 +51,12 @@ def get_all_transactions(user_id): # TODO add sorted flag
 def get_txns_from_db(user_id, amc):
     return models.TxnRaw.query.filter_by(user_id=user_id, amc=amc).all()
 
+def get_last_transaction_date(user_id, amc):
+    try:
+        return models.TxnRaw.query.filter_by(user_id=user_id, amc=amc).order_by(models.TxnRaw.date.desc()).first().date
+    except AttributeError:
+        return 00000000
+
 def get_db_objects_from_txn_list(txn_list, user_id):
     """Returns DB objects from txn_objs."""
     db_objs = []
@@ -68,3 +74,4 @@ def get_db_objects_from_txn_list(txn_list, user_id):
                         txn_obj['remarks'])
         db_objs.append(db_obj)
     return db_objs
+get_last_transaction_date(1, 'uti')
