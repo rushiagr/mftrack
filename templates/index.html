@@ -10,7 +10,22 @@
         Total amount invested: {{ stats['total_amount_invested'] }} <br>
         Total amount now: {{ stats['total_amount_now'] }} <br>
         Percentage gains: {{ stats['percentage_gains'] }} <br>
-		<br>    	
+		<br>
+
+		<table border="1">
+			{% for mf in mf_dict %}
+			<tr>
+				<td>{{ mf }}</td> 
+				<td>{{ mf_dict[mf]['total_units'] }}</td> 
+				<td>{{ mf_dict[mf]['total_amount_invested'] }}</td> 
+				<td>{{ mf_dict[mf]['total_amount_now'] }}</td> 
+				<td>{{ mf_dict[mf]['percentage_gains'] }}</td> 
+				<td>{{ mf_dict[mf]['average_holding_period'] }}</td> 
+				<td>{{ mf_dict[mf]['annualized_gains'] }}</td> 
+			</tr>
+			{% endfor %}
+		</table>
+		
     	Input you data here:
     	<form method="post">
 	    	<textarea name='inputText'></textarea>

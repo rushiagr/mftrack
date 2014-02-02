@@ -124,9 +124,17 @@ def get_detailed_stats(txn_list):
     for mf in mf_dict:
         mf_dict[mf]['total_units'] = sum([txn['units'] for txn in mf_dict[mf]['txns'] if txn['txn_type'] == PURCHASE])
         mf_dict[mf]['total_units'] -= sum([txn['units'] for txn in mf_dict[mf]['txns'] if txn['txn_type'] == REDEMPTION])
+
+    for mf in mf_dict.keys():
+        if mf_dict[mf]['total_units'] == 0.0:
+            del mf_dict[mf]
+
+    for mf in mf_dict:
         mf_dict[mf]['total_amount_invested'] = sum([txn['left_units'] * txn['nav'] for txn in mf_dict[mf]['txns']])
         mf_dict[mf]['total_amount_now'] = mf_curr_value_dict[mf] * mf_dict[mf]['total_units']
-        mf_dict[mf]['percentage_gains'] = mf_dict[mf]['total_amount_now']/mf_dict[mf]['total_amount_invested']*100.0 if mf_dict[mf]['total_amount_invested'] != 0.0 else 0.0
+        mf_dict[mf]['percentage_gains'] = mf_dict[mf]['total_amount_now']/mf_dict[mf]['total_amount_invested']*100.0 - 100.0 if mf_dict[mf]['total_amount_invested'] != 0.0 else 0.0
+        mf_dict[mf]['average_holding_period'] = sum([txn['left_units']*utils.diff_days(utils.today(), txn['date']) for txn in mf_dict[mf]['txns']])/sum(txn['left_units'] for txn in mf_dict[mf]['txns'])
+        mf_dict[mf]['annualized_gains'] = 365.25/mf_dict[mf]['average_holding_period']*mf_dict[mf]['percentage_gains']
     stats = {}
     stats['total_amount_invested'] = sum([mf_dict[mf]['total_amount_invested'] for mf in mf_dict])
     stats['total_amount_now'] = sum([mf_dict[mf]['total_amount_now'] for mf in mf_dict])
@@ -272,7 +280,9 @@ def get_mf_data(mf_code, from_date, to_date):
          'to_mm': to_date[4:6],
          'to_yyyy': to_date[0:4],
          })
+    print datetime.datetime.utcnow(), 'IN | making query to moneycontrol... '
     resp_str = urllib2.urlopen(query_url).read()
+    print datetime.datetime.utcnow(), 'OUT | making query to moneycontrol... '
     return extract_moneycontrol_data(resp_str)
 
 

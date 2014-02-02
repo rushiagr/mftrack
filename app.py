@@ -26,7 +26,7 @@ def main():
 #        return 'OK, data submitted to server. Data:</br>' + request.form.get('inputText')
     elif request.method == 'GET':
         mf_dict, stats = engine.get_summary(1)
-        return render_template('index.html', stats=stats)
+        return render_template('index.html', mf_dict=mf_dict, stats=stats)
 #        txns = engine.get_txns()
 #        return ui.tablify_transactions(txns)
 #         f = open('webui/welcome_page.html')

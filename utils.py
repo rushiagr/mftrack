@@ -41,3 +41,11 @@ def today():
 
 def last_month():
     return int_date(datetime.date.today() - datetime.timedelta(days=30))
+
+def diff_days(date1, date2):
+    """Provides the difference between the int dates, in number of days."""
+    if date1 < date2:
+        date1, date2 = date2, date1
+    date_1 = datetime.date(date1/10000, date1/100%100, date1%100)
+    date_2 = datetime.date(date2/10000, date2/100%100, date2%100)
+    return (date_1 - date_2).days
