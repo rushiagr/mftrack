@@ -2,6 +2,7 @@ from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 
 from flask import request
+from flask import render_template
 
 #from db import api as db_api
 
@@ -25,11 +26,7 @@ def main():
 #        return 'OK, data submitted to server. Data:</br>' + request.form.get('inputText')
     elif request.method == 'GET':
         mf_dict, stats = engine.get_summary(1)
-        ret = ''
-        ret += 'Total amount invested: ' + str(stats['total_amount_invested']) + '<br>'
-        ret += 'Total amount now: ' + str(stats['total_amount_now']) + '<br>'
-        ret += 'Percentage gains: ' + str(stats['percentage_gains']) + '<br>'
-        return ret
+        return render_template('index.html', stats=stats)
 #        txns = engine.get_txns()
 #        return ui.tablify_transactions(txns)
 #         f = open('webui/welcome_page.html')

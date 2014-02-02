@@ -49,6 +49,7 @@ print admin.email
 txns = TxnRaw.query.filter_by(user_id=1).all()
 print [txn.date for txn in txns]
 
-
+### Jinja
+pip install Jinja2
 
 
