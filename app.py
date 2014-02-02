@@ -24,8 +24,14 @@ def main():
         return 'OK. Saved in DB.'
 #        return 'OK, data submitted to server. Data:</br>' + request.form.get('inputText')
     elif request.method == 'GET':
-        txns = engine.get_txns()
-        return ui.tablify_transactions(txns)
+        mf_dict, stats = engine.get_summary(1)
+        ret = ''
+        ret += 'Total amount invested: ' + str(stats['total_amount_invested']) + '<br>'
+        ret += 'Total amount now: ' + str(stats['total_amount_now']) + '<br>'
+        ret += 'Percentage gains: ' + str(stats['percentage_gains']) + '<br>'
+        return ret
+#        txns = engine.get_txns()
+#        return ui.tablify_transactions(txns)
 #         f = open('webui/welcome_page.html')
 #         return ''.join(f.readlines())
 

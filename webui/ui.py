@@ -20,4 +20,4 @@ def get_row(txn):
     for attr in ['fund_name', 'txn_type', 'units', 'amount', 'date']:
         row += '<td>'+str(txn[attr])+'</td>'
     row += '</tr>'
-    return row        
+    return row

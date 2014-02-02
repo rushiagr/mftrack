@@ -51,7 +51,7 @@
 from examples import utimf
 from examples import icicipru
 
-from db import models
+#from db import models
 from db import api as db
 import utils
 
@@ -66,7 +66,7 @@ REDEMPTION = 3
 PURCHASE = 101
 
 def get_txns():
-    return db.get_all_transactions_for_user(1)
+    return db.get_all_transactions(1)
 
 class Txn(object):
     def __init__(self, fund_name=None, txn_type=None, amount=None, units=None,
@@ -102,22 +102,36 @@ def get_detailed_stats(txn_list):
     # stored and retrieved from database
 
     for txn in txn_list:
-        mf_dict[txn['fund_name']] = []
+        mf_dict[txn['fund_name']] = {}
+        mf_dict[txn['fund_name']]['txns'] = []
     for txn in txn_list:
-        mf_dict[txn['fund_name']].append(txn)
+        mf_dict[txn['fund_name']]['txns'].append(txn)
 
     for mf in mf_dict:
-        mf_dict[mf].sort(key=lambda x: x['date'])
+        mf_dict[mf]['txns'].sort(key=lambda x: x['date'])
     for mf in mf_dict:
-        no_nav_txn = [txn for txn in mf_dict[mf] if txn['nav'] is None]
+        no_nav_txn = [txn for txn in mf_dict[mf]['txns'] if txn['nav'] is None]
         if len(no_nav_txn) != 0:
             # TODO: optimize here too
-            fill_all_navs_for_fund(mf_dict[mf])
+            fill_all_navs_for_fund(mf_dict[mf]['txns'])
 
     for mf in mf_dict:
-        fill_redemption_stats(mf_dict[mf])
-    
-    return mf_dict
+        fill_redemption_stats(mf_dict[mf]['txns'])
+
+    mf_curr_value_dict = get_curr_fund_value(mf_dict.keys())
+
+
+    for mf in mf_dict:
+        mf_dict[mf]['total_units'] = sum([txn['units'] for txn in mf_dict[mf]['txns'] if txn['txn_type'] == PURCHASE])
+        mf_dict[mf]['total_units'] -= sum([txn['units'] for txn in mf_dict[mf]['txns'] if txn['txn_type'] == REDEMPTION])
+        mf_dict[mf]['total_amount_invested'] = sum([txn['left_units'] * txn['nav'] for txn in mf_dict[mf]['txns']])
+        mf_dict[mf]['total_amount_now'] = mf_curr_value_dict[mf] * mf_dict[mf]['total_units']
+        mf_dict[mf]['percentage_gains'] = mf_dict[mf]['total_amount_now']/mf_dict[mf]['total_amount_invested']*100.0 if mf_dict[mf]['total_amount_invested'] != 0.0 else 0.0
+    stats = {}
+    stats['total_amount_invested'] = sum([mf_dict[mf]['total_amount_invested'] for mf in mf_dict])
+    stats['total_amount_now'] = sum([mf_dict[mf]['total_amount_now'] for mf in mf_dict])
+    stats['percentage_gains'] = stats['total_amount_now']/stats['total_amount_invested']*100.0 - 100.0
+    return mf_dict, stats
 
 
 def fill_redemption_stats(txn_list):
@@ -147,6 +161,7 @@ def fill_redemption_stats(txn_list):
                 else:
                     break
     for txn, units in zip(txn_list, txn_units):
+        txn['left_units'] = txn['units'] if txn['txn_type'] == PURCHASE else 0.0
         txn['units'] = units
 
     
@@ -257,7 +272,6 @@ def get_mf_data(mf_code, from_date, to_date):
          'to_mm': to_date[4:6],
          'to_yyyy': to_date[0:4],
          })
-
     resp_str = urllib2.urlopen(query_url).read()
     return extract_moneycontrol_data(resp_str)
 
@@ -297,19 +311,30 @@ def amount_invested_from_list(txn_list):
             invested_units += txn.units
     return invested_units * curr_value
 
-#### All the user-related functions
 
+
+
+################################################
+#### All the user-related functions  ###########
+################################################
 
 
 def store_transactions(txtbox_data, amc, user_id):
     txns = txn_to_obj_list(txtbox_data, amc, user_id)
     db.store_transactions(txns)
 
+def get_summary(user_id):
+    """Get all the important data for the user"""
+    txns = db.get_all_transactions(user_id)
+    mf_dict, stats = get_detailed_stats(txns)
+    return mf_dict, stats
 
 
+################################################
+################################################
+################################################
 
 
-#===waste
 
 def store_textbox_data_in_db(txtbox_data, amc=None, user_id=None):
     """Takes the transaction information pasted by user into textbox and
@@ -326,16 +351,16 @@ def store_textbox_data_in_db(txtbox_data, amc=None, user_id=None):
                                        from_db_obj_list)
     # get only the new objects to be inserted in db
     new_db_objs = get_new_db_objects(to_db_obj_list, from_db_obj_list)
-    insert_objects_into_db(new_db_objs)
+#    insert_objects_into_db(new_db_objs)
 
 
 
 
 
-def insert_objects_into_db(new_db_objs):
-    for obj in new_db_objs:
-        models.db.session.add(obj)
-    models.db.session.commit()
+#def insert_objects_into_db(new_db_objs):
+#    for obj in new_db_objs:
+#        models.db.session.add(obj)
+#    models.db.session.commit()
 
 def get_new_db_objects(to_db_obj_list, from_db_obj_list):
     # NOTE(rushiagr): Assumption: when 2 transactions for say 14th Jan are 
@@ -366,3 +391,5 @@ def validate_existing_and_new_txn_data(to_db_obj_list,
 #     # calls to moneycontrol website
 #     print 'fund: %s value: %s' % (fund, amount_invested_from_list(mf_dict[fund]))
 # print sum([amount_invested_from_list(mf_dict[fund]) for fund in mf_dict])
+
+

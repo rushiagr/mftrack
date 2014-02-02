@@ -43,7 +43,7 @@ def get_fund_id(fund_name):
     # to be replaced with a call to database
     return fund_ids[fund_name]
 
-def get_all_transactions_for_user(user_id): # TODO add sorted flag
+def get_all_transactions(user_id): # TODO add sorted flag
     txns = models.TxnRaw.query.all()
     print 'txns', txns
     return unpack_transactions(txns)
