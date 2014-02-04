@@ -310,13 +310,18 @@ def update_fund(mf_code, last_date=None):
         d = str(last_date)
         date_query_str = '&dd='+d[6:]+'&mm='+d[4:6]+'&yy='+d[:4]
     resp_str = urllib2.urlopen('http://moneycontrol.com/mf/mf_info/hist_tech_chart.php?im_id='+mf_code+date_query_str).read()
+    if len(resp_str) < 10:
+        return {}
     date_value_dict, last_date = extract_moneycontrol_data(resp_str)
     dates = date_value_dict.keys()
     dates.sort()
 
     # Moneycontrol.com quirk
+    # If moneycontrol returns data of only one day, it is the correct value,
+    # else it would have returned nothing
     if len(dates) > 1 and date_value_dict[dates[-1]] == date_value_dict[dates[-2]]:
         del date_value_dict[dates[-1]]
+
 
     db.store_navs(mf_code, date_value_dict)
     return date_value_dict

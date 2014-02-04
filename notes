@@ -54,3 +54,5 @@ pip install Jinja2
 
 
 
+install beautifulsoup
+sudo pip install beautifulsoup4
