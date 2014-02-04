@@ -1,6 +1,8 @@
 from app import db
 import models
 
+import datetime
+
 fund_ids = {
     'UTI-BOND FUND - GROWTH': 'MUT021',
     'UTI-TREASURY ADVANTAGE FUND - INSTITUTIONAL PLAN - GROWTH': 'MUT119',
@@ -13,6 +15,12 @@ fund_ids = {
     'blah':'blah',
 }
 
+def get_fund_name(fund_id):
+    for k, v in fund_ids.iteritems():
+        if v == fund_id:
+            return k
+    raise BaseException
+    
 def unpack_transactions(txn_list):
     """Converts list of DB transaction objects to list of dicts."""
     return_list = []
@@ -73,4 +81,39 @@ def get_db_objects_from_txn_list(txn_list, user_id):
                         txn_obj['remarks'])
         db_objs.append(db_obj)
     return db_objs
-get_last_transaction_date(1, 'uti')
+
+def get_last_nav_date(fund_id):
+    last_date = models.Nav.query.filter_by(fund_id=fund_id).order_by(models.Nav.date.desc()).first()
+    if last_date:
+        return last_date.date
+    else:
+        return 0
+
+def get_navs(fund_id, from_date, to_date):
+    data =  models.Nav.query.filter(models.Nav.fund_id==fund_id, models.Nav.date >= str(from_date), models.Nav.date <= str(to_date))
+    date_value_dict = {}
+    for datum in data:
+        date_value_dict[datum.date] = datum.nav
+    return date_value_dict
+
+def store_navs(fund_id, date_value_dict):
+    for date in date_value_dict:
+        db.session.add(models.Nav(fund_id, date, date_value_dict[date]))
+    fund = models.Fund.query.filter_by(fund_id=fund_id).first()
+    if fund:
+        fund.updated_at = datetime.datetime.utcnow()
+    else:
+        fund = models.Fund(fund_id, get_fund_name(fund_id))
+    db.session.add(fund)
+    db.session.commit()
+    return True
+
+def last_updated(fund_id):
+#    return models.Fund.query.filter_by(fund_id=fund_id).first().last_updated
+    fund = models.Fund.query.filter_by(fund_id=fund_id).first()
+    if not fund:
+        store_navs(fund_id, {})
+        return datetime.datetime.utcnow()
+    else:
+        return fund.last_updated
+

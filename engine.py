@@ -180,7 +180,7 @@ def fill_all_navs_for_fund(txn_list):
     # Assumption: list is already sorted
     max_date = txn_list[-1]['date']
     min_date = txn_list[0]['date']
-    date_nav_dict = get_mf_data(txn_list[0]['fund_id'], min_date, max_date)
+    date_nav_dict, _blah = get_mf_data(txn_list[0]['fund_id'], min_date, max_date)
     for txn in txn_list:
         txn['nav'] = date_nav_dict[txn['date']]
 
@@ -190,7 +190,7 @@ def get_curr_fund_value(fund_name_list):
     unit_values = {}
     for fund in fund_name_list:
         fund_id = db.get_fund_id(fund)
-        data_dict = get_mf_data(fund_id, utils.last_month(), utils.today())
+        data_dict, last_date = get_mf_data(fund_id, utils.last_month(), utils.today())
         unit_values[fund] = data_dict[max(data_dict)]
     return unit_values
 
@@ -258,32 +258,69 @@ def parse_txn(txn_string):
     return txn_matrix
 
 def get_mf_data(mf_code, from_date, to_date):
-    """ Returns a tuple of date and mutual fund NAV for the given mutual fund,
-    between the given dates"""
-    from_date = str(from_date)
-    to_date = str(to_date)
-    query_url = ('http://moneycontrol.com/mf/mf_info/hist_tech_chart.php?'
-               'im_id=%(mf_id)s'
-               '&dd=%(from_dd)s'
-               '&mm=%(from_mm)s'
-               '&yy=%(from_yyyy)s'
-               '&t_dd=%(to_dd)s'
-               '&t_mm=%(to_mm)s'
-               '&t_yy=%(to_yyyy)s'
-               '&range=max' % 
-               
-        {'mf_id': mf_code,
-         'from_dd': from_date[6:],
-         'from_mm': from_date[4:6],
-         'from_yyyy': from_date[0:4],
-         'to_dd': to_date[6:],
-         'to_mm': to_date[4:6],
-         'to_yyyy': to_date[0:4],
-         })
-    print datetime.datetime.utcnow(), 'IN | making query to moneycontrol... '
-    resp_str = urllib2.urlopen(query_url).read()
-    print datetime.datetime.utcnow(), 'OUT | making query to moneycontrol... '
-    return extract_moneycontrol_data(resp_str)
+    """ Returns a dict of date and mutual fund NAV for the given mutual fund,
+    between the given dates. Also returns the date of last day when NAV was updated
+        
+    #Design principles
+    * Do not store last date's data if the NAV is exactly same as the previous
+      date
+    * If data in db is old (older than 4 hours), update it.
+    * ALSO RETURN WHAT IS THE LATEST DATE FOR WHICH CORRECT DATA IS RETURNED.
+      That is, if today is 4 jan, but in db, data is uptill only 2 jan.
+      If query is 1-2 jan, return 2 jan
+      but if query is 1-4 jan, return 2 jan and not 4 jan, as data for only 2 jan is present
+      
+    #Workflow
+    if no data present for that mf in DB
+        fetch all data from moneycontrol and dump it in our DB. 
+        Return appropriate data to user
+    if data present:
+        if data present in db for the specified dates
+            good! fetch data from db and return to user!
+        if data not present in db for all of the specified dates
+            if last-fetch-time is greater than 4 hours
+                get data from moneycontrol, and update the last_fetch time
+            if not, just return the data from db
+    
+    """
+    date_value_dict = db.get_navs(mf_code, from_date, to_date)
+    return_dict = {}
+
+    if not date_value_dict:
+        date_value_dict = update_fund(mf_code)
+    else:
+        db_dates = date_value_dict.keys()
+        db_dates.sort()
+        last_date = db_dates[-1]
+        if last_date != to_date:
+            now = datetime.datetime.utcnow()
+            if (now - db.last_updated(mf_code)).seconds > 4*60*60:
+                update_fund(mf_code, last_date+1)
+                date_value_dict = db.get_navs(mf_code, from_date, to_date)
+
+    for k, v in date_value_dict.iteritems():
+        if k >= from_date and k <= to_date:
+            return_dict[k] = v
+    return return_dict, max(return_dict.keys())
+            
+
+def update_fund(mf_code, last_date=None):
+    date_query_str = ''
+    if last_date is not None:
+        d = str(last_date)
+        date_query_str = '&dd='+d[6:]+'&mm='+d[4:6]+'&yy='+d[:4]
+    resp_str = urllib2.urlopen('http://moneycontrol.com/mf/mf_info/hist_tech_chart.php?im_id='+mf_code+date_query_str).read()
+    date_value_dict, last_date = extract_moneycontrol_data(resp_str)
+    dates = date_value_dict.keys()
+    dates.sort()
+
+    # Moneycontrol.com quirk
+    if len(dates) > 1 and date_value_dict[dates[-1]] == date_value_dict[dates[-2]]:
+        del date_value_dict[dates[-1]]
+
+    db.store_navs(mf_code, date_value_dict)
+    return date_value_dict
+    
 
 
 def extract_moneycontrol_data(data_str):
@@ -297,7 +334,7 @@ def extract_moneycontrol_data(data_str):
     for line in lines:
         l = line.split(',')
         date_value_dict[utils.int_date(l[0])] = float(l[1])
-    return date_value_dict
+    return date_value_dict, utils.int_date(l[0])
 
 #print extract_moneycontrol_data(get_mf_data('MPI110', intdate_last_month(), intdate_today()))
 #print get_mf_data('MPI110', intdate_last_month(), intdate_today())
