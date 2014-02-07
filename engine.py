@@ -294,7 +294,9 @@ def get_mf_data(mf_code, from_date, to_date):
         last_date = db_dates[-1]
         if last_date != to_date:
             now = datetime.datetime.utcnow()
-            if (now - db.last_updated(mf_code)).seconds > 4*60*60:
+            last_update = db.last_updated(mf_code)
+            diff = now - last_update
+            if diff.days > 0 or (now - last_update).seconds > 4*60*60:
                 update_fund(mf_code, last_date+1)
                 date_value_dict = db.get_navs(mf_code, from_date, to_date)
 
@@ -321,7 +323,6 @@ def update_fund(mf_code, last_date=None):
     # else it would have returned nothing
     if len(dates) > 1 and date_value_dict[dates[-1]] == date_value_dict[dates[-2]]:
         del date_value_dict[dates[-1]]
-
 
     db.store_navs(mf_code, date_value_dict)
     return date_value_dict

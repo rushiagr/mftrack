@@ -101,10 +101,10 @@ def store_navs(fund_id, date_value_dict):
         db.session.add(models.Nav(fund_id, date, date_value_dict[date]))
     fund = models.Fund.query.filter_by(fund_id=fund_id).first()
     if fund:
-        fund.updated_at = datetime.datetime.utcnow()
+        fund.last_updated = datetime.datetime.utcnow()
     else:
         fund = models.Fund(fund_id, get_fund_name(fund_id))
-    db.session.add(fund)
+        db.session.add(fund)
     db.session.commit()
     return True
 
@@ -117,3 +117,4 @@ def last_updated(fund_id):
     else:
         return fund.last_updated
 
+store_navs('MPI015', {})
