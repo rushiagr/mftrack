@@ -66,6 +66,15 @@ class Keyword(db.Model):
         self.id = id
         self.keyword = keyword
 
+class FundDataExtracted(db.Model):
+    __tablename__ = 'fund_data_extracted'
+    id = db.Column(db.String(10), primary_key=True)
+    is_updated = db.Column(db.Integer)
+    
+    def __init__(self, id, is_updated):
+        self.id = id
+        self.is_updated = is_updated
+    
 #db.create_all() # Make a create_all() call here (after importing this file 
 # to app.py) to create all tables
         

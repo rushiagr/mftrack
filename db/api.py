@@ -117,4 +117,6 @@ def last_updated(fund_id):
     else:
         return fund.last_updated
 
+
+
 #store_navs('MPI015', {})

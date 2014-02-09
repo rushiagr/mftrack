@@ -365,6 +365,12 @@ def amount_invested_from_list(txn_list):
     return invested_units * curr_value
 
 
+def guess_fund_id(fund_name):
+    """Guess fund ID from fund name."""
+    # First see if it can be found using keywords
+    # else use the manual keyword mapping
+    # else apply brute force on reduced set of fund_ids to get one value
+
 
 
 ################################################
