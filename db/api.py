@@ -142,6 +142,6 @@ def fund_id_from_keywords(keywords):
     return db.engine.execute(text(query_str), **param_dict).first().id
 
 def get_all_fund_families():
-    return [row['family'] for row in db.engine.execute('SELECT DISTINCT family FROM fund;')]
+    return [row['family'] for row in db.engine.execute('SELECT DISTINCT family FROM fund ORDER BY family;')]
 
 #store_navs('MPI015', {})
