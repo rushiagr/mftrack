@@ -1,6 +1,8 @@
 from app import db
 import models
 
+from sqlalchemy import or_, text
+from sqlalchemy.sql import func
 import datetime
 
 fund_ids = {
@@ -117,6 +119,29 @@ def last_updated(fund_id):
     else:
         return fund.last_updated
 
+def fund_id_from_keywords(keywords):
+#    keywords_OR_arg = (models.Keyword.keyword == kw for kw in keywords)
+#    print keywords_OR_arg
+#    models.Keyword.query(models.Keyword.id,
+#                         db.count(models.Keyword.keyword).label("kw_count"))\
+#                 .filter(or_(keywords_OR_arg)).order_by("kw_count")
+    query_str = ('SELECT keyword.id, count(*) as count_col '
+                'from keyword '
+                'where ')
 
+    param_dict = {}
+    for kw in keywords:
+        param_dict['id'+str(keywords.index(kw)+1)] = kw
+
+    ls = []
+    for i in range(len(keywords)):
+        ls.append('keyword.keyword = :id' + str(i+1) + ' ')
+
+    query_str += ' or '.join(ls)
+    query_str += ' group by keyword.id order by count_col desc'
+    return db.engine.execute(text(query_str), **param_dict).first().id
+
+def get_all_fund_families():
+    return [row['family'] for row in db.engine.execute('SELECT DISTINCT family FROM fund;')]
 
 #store_navs('MPI015', {})

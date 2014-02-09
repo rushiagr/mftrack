@@ -371,7 +371,8 @@ def guess_fund_id(fund_name):
     # else use the manual keyword mapping
     # else apply brute force on reduced set of fund_ids to get one value
 
-
+def get_all_fund_families():
+    return db.get_all_fund_families()
 
 ################################################
 #### All the user-related functions  ###########
@@ -394,6 +395,13 @@ def get_summary(user_id):
 ################################################
 ################################################
 ################################################
+
+#ICICI Prudential Technology Fund - Direct Plan - Growth
+
+def find_fund_id_from_fund_name(fund_name):
+    fund_keywords = fund_name.lower().split()
+    extras = ['-']
+    fund_keywords = [kw for kw in fund_keywords if kw not in extras]
 
 
 

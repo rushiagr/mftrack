@@ -48,7 +48,12 @@
     	Input you data here:
     	<form method="post">
 	    	<textarea name='inputText'></textarea>
-	    	<input name='amc' placeholder='uti'></input>
+	    	Fund house:
+			<select>
+				{% for family in fund_families %}
+					<option value="{{ family }}">{{ family }}</option>
+				{% endfor %}
+			</select>
 	    	<button type="submit">Submit</button>
     	</form>
     </body>

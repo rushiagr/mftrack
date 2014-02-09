@@ -63,6 +63,17 @@ def get_all_data_for_fund(fund_url):
 
     return {'keywords': heading_keywords, 'family': family, 'class': Class}
 
+# QUERY TO ADD 'GROWTH' KEYWORD FOR MUTUAL FUNDS FOR WHICH KEYWORD '(G)' IS PRESENT:
+# NOTE: query is very slow, IDK why
+# insert into keyword  (select id, 'growth' from keyword 
+# where keyword.keyword='(g)' and keyword.id not in 
+#     (select t1.id from keyword as t1, keyword as t2 
+#     where t1.id = t2.id and t1.keyword='(g)' and t2.keyword='growth'));
+ 
+## WARNINGNNNGGGNNGGG!!!! I inserted this erroneous query into DB. Remove all these entries in future :( :(:(:(
+# insert into keyword  (select id, 'institutional' from keyword where keyword.keyword='(g)' and keyword.id not in (select t1.id from keyword as t1, keyword as t2 where t1.id = t2.id and t1.keyword='ip' and t2.keyword='institutional'))
+
+
 shortcut_map = {'(g)': 'growth plan',
                 'fpo': 'fixed pricing option',
                 '(i)': 'india',
@@ -72,7 +83,13 @@ shortcut_map = {'(g)': 'growth plan',
                 'rp': 'retail plan',
                 'growth': 'growth plan', 
                 'direct': 'direct plan',
-                'ft': 'franklin templeton'
+                'ft': 'franklin templeton',
+                
+                'vpo': 'variable pricing option',
+                'usbf': 'ultra short term bond fund',
+                'ustbf': 'ultra short term bond fund',
+                'ustf': 'ultra short term fund',
+                'ultra-short': 'ultra short fund',
                 }
 
 def fill_all_funds():
