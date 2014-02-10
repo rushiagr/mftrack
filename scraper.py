@@ -72,6 +72,8 @@ def get_all_data_for_fund(fund_url):
  
 ## WARNINGNNNGGGNNGGG!!!! I inserted this erroneous query into DB. Remove all these entries in future :( :(:(:(
 # insert into keyword  (select id, 'institutional' from keyword where keyword.keyword='(g)' and keyword.id not in (select t1.id from keyword as t1, keyword as t2 where t1.id = t2.id and t1.keyword='ip' and t2.keyword='institutional'))
+#Query OK, 1821 rows affected (13.67 sec)
+#Records: 1821  Duplicates: 0  Warnings: 0
 
 
 shortcut_map = {'(g)': 'growth plan',

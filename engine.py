@@ -199,9 +199,11 @@ def txn_to_obj_list(txn_string, amc=None, user_id=None):
     
     txn_matrix = parse_txn(txn_string)
     txn_obj_list = []
-    if amc.lower() == 'uti':
+    print 'amc', amc
+    
+    if amc == 'UTI Mutual Fund':
         positions = [0, 1, 2, 3, 4]
-    elif amc.lower() == 'icici':
+    elif amc == 'ICICI Prudential Mutual Fund':
         positions = [0, 1, 5, 3, 2]
     else:
         raise
@@ -226,17 +228,17 @@ def txn_to_obj_list(txn_string, amc=None, user_id=None):
 
     
     # Additional details contained in transactions
-    if amc.lower() == 'uti':
+    if amc == 'UTI Mutual Fund':
         for obj, txn in zip(txn_obj_list, txn_matrix):
             obj['remarks'] = txn[6].strip() if len(txn) >= 7 else ''
 
 # DO NOT STORE ICICI NAV. IT IS SoMETIMES AN OLD VALUE
-#     elif amc.lower() == 'icici':
+#     elif amc == 'ICICI Prudential Mutual Fund':
 #         for obj, txn in zip(txn_obj_list, txn_matrix):
 #             obj['nav'] = float(txn[4])
 
     for obj in txn_obj_list:
-        obj['amc'] = amc.lower() if amc.lower() in ['icici', 'uti'] else ''
+        obj['amc'] = amc if amc in ['ICICI Prudential Mutual Fund', 'UTI Mutual Fund'] else ''
     
     for obj in txn_obj_list:
         obj['user_id'] = user_id

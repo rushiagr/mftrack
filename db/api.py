@@ -101,10 +101,12 @@ def get_navs(fund_id, from_date, to_date):
 def store_navs(fund_id, date_value_dict):
     for date in date_value_dict:
         db.session.add(models.Nav(fund_id, date, date_value_dict[date]))
-    fund = models.Fund.query.filter_by(fund_id=fund_id).first()
+    fund = models.Fund.query.filter_by(id=fund_id).first()
     if fund:
-        fund.last_updated = datetime.datetime.utcnow()
+        fund.updated = datetime.datetime.utcnow()
     else:
+        # NOW, if we come here, means the fund value is not present. Inform user
+        # of this behavior and fix it in the backend manually somehow.
         fund = models.Fund(fund_id, get_fund_name(fund_id))
         db.session.add(fund)
     db.session.commit()
@@ -112,12 +114,12 @@ def store_navs(fund_id, date_value_dict):
 
 def last_updated(fund_id):
 #    return models.Fund.query.filter_by(fund_id=fund_id).first().last_updated
-    fund = models.Fund.query.filter_by(fund_id=fund_id).first()
+    fund = models.Fund.query.filter_by(id=fund_id).first()
     if not fund:
         store_navs(fund_id, {})
         return datetime.datetime.utcnow()
     else:
-        return fund.last_updated
+        return fund.updated
 
 def fund_id_from_keywords(keywords):
 #    keywords_OR_arg = (models.Keyword.keyword == kw for kw in keywords)

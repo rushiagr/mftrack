@@ -23,7 +23,9 @@ import engine
 @app.route('/', methods=['GET', 'POST'])
 def main():
     if request.method =='POST':
-        engine.store_transactions(request.form.get('inputText'), 1)
+        engine.store_transactions(request.form.get('inputText'),
+                                  request.form.get('amc'),
+                                  1)
         flash('OK. Saved in DB.')
         mf_dict, stats = engine.get_summary(1)
         fund_families = engine.get_all_fund_families()

@@ -49,7 +49,7 @@
     	<form method="post">
 	    	<textarea name='inputText'></textarea>
 	    	Fund house:
-			<select>
+			<select name='amc'>
 				{% for family in fund_families %}
 					<option value="{{ family }}">{{ family }}</option>
 				{% endfor %}
