@@ -57,6 +57,8 @@ import utils
 
 import urllib2
 import datetime
+from bs4 import BeautifulSoup
+
 
 # Constants
 NEW_PURCHASE = 1
@@ -249,6 +251,64 @@ def txn_to_obj_list(txn_string, amc=None, user_id=None):
 
     return txn_obj_list
 
+def google_fund_id(fund_name, nav, nav_date):
+    """Google searches for the fund name. If multiple fund IDs found on first
+    google search page, it checks the NAV of that fund on the given date to
+    select exactly which fund out of all the found fund IDs."""
+    fund_keywords = get_keywords_from_fund_name(fund_name)
+    search_url = get_search_url(fund_keywords)
+    data = get_data_from_google(search_url)
+    possible_urls = get_possible_urls_from_search_data(data)
+    fund_id = get_fund_id_from_possible_urls(possible_urls)
+    return fund_id
+
+def get_search_url(fund_keywords):
+    req = urllib2.Request('http://www.google.com/search?q=uti+nifty+index+fund+dividend+moneycontrol', None, {'User-Agent': 'Firefox/3.0.15'})
+    resp = urllib2.urlopen(req).read()
+    soup = BeautifulSoup(resp)
+    soup = soup.prettify().split('\n')
+    soup = [line.strip() for line in soup if line.find('moneycontrol.com/mutual-funds/nav/') > -1]
+    print soup
+    soup = [line.partition('www.moneycontrol.com')[2] for line in soup]
+    print soup
+    soup = [line.split('%')[0] for line in soup]
+    soup = [line.split('&')[0] for line in soup]
+    soup = [line.split('+')[0] for line in soup]
+    soup = set([line for line in soup if not line.endswith('.html')])
+    print soup
+    ### Start writing from here
+#    data = urllib2.urlopen('http://www.google.com/search?q=uti+nifty+index+fund+dividend+moneycontrol').read()
+#    print data
+
+
+
+def get_keywords_from_fund_name(fund_name):
+    kws = fund_name.split()
+    kws = set([kw.lower() for kw in kws if kw not in ['-']])
+    shortcut_map = {'(g)': 'growth plan',
+                    '(d)': 'dividend plan',
+                    'fpo': 'fixed pricing option',
+                    '(i)': 'india',
+                    'sl': 'sunlife sun life',
+                    'inst': 'institutional plan',
+                    'ip': 'institutional plan',
+                    'rp': 'retail plan',
+                    'growth': 'growth plan', 
+                    'direct': 'direct plan',
+                    'ft': 'franklin templeton',
+                    
+                    'vpo': 'variable pricing option',
+                    'usbf': 'ultra short term bond fund',
+                    'ustbf': 'ultra short term bond fund',
+                    'ustf': 'ultra short term fund',
+                    'ultra-short': 'ultra short fund',
+                    }
+    for key in shortcut_map.keys():
+        if key in kws:
+            kws.remove(key)
+            for word in shortcut_map[key].split():
+                kws.add(word)
+    return kws
 
 def parse_txn(txn_string):
     """ Takes transaction status from UTIMF or ICICI website, and converts

@@ -107,6 +107,7 @@ def store_navs(fund_id, date_value_dict):
     else:
         # NOW, if we come here, means the fund value is not present. Inform user
         # of this behavior and fix it in the backend manually somehow.
+        raise BaseException
         fund = models.Fund(fund_id, get_fund_name(fund_id))
         db.session.add(fund)
     db.session.commit()

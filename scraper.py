@@ -77,9 +77,10 @@ def get_all_data_for_fund(fund_url):
 
 
 shortcut_map = {'(g)': 'growth plan',
+                '(d)': 'dividend plan',
                 'fpo': 'fixed pricing option',
                 '(i)': 'india',
-                'sl': 'sunlife',
+                'sl': 'sunlife sun life',
                 'inst': 'institutional plan',
                 'ip': 'institutional plan',
                 'rp': 'retail plan',

@@ -43,5 +43,5 @@ def main():
 
 
 if __name__ == "__main__":
-    print engine.db.fund_id_from_keywords('icici prudential technology growth direct'.split())
-    app.run(debug=True, port=5010)
+    engine.get_search_url('blah')
+#    app.run(debug=True, port=5012)
