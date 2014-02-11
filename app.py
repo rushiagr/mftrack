@@ -43,5 +43,5 @@ def main():
 
 
 if __name__ == "__main__":
-    engine.get_search_url('blah')
+    engine.get_search_url(['nifty', 'uti', 'dividend', 'index', 'fund'])
 #    app.run(debug=True, port=5012)

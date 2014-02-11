@@ -256,29 +256,29 @@ def google_fund_id(fund_name, nav, nav_date):
     google search page, it checks the NAV of that fund on the given date to
     select exactly which fund out of all the found fund IDs."""
     fund_keywords = get_keywords_from_fund_name(fund_name)
-    search_url = get_search_url(fund_keywords)
-    data = get_data_from_google(search_url)
-    possible_urls = get_possible_urls_from_search_data(data)
-    fund_id = get_fund_id_from_possible_urls(possible_urls)
-    return fund_id
+    fund_ids = get_possible_fund_ids(fund_keywords)
+    return get_correct_fund_id_from_nav_data(fund_ids, nav, nav_date)
+    
+def get_correct_fund_id_from_nav_data(fund_ids, nav, nav_date):
+    for fund_id in fund_ids:
+        date_nav_dict = get_mf_data(fund_id, nav_date, utils.today())
+        if abs(date_nav_dict[nav_date]-nav)/nav < 0.01:
+            return fund_id
+    raise BaseException
 
-def get_search_url(fund_keywords):
-    req = urllib2.Request('http://www.google.com/search?q=uti+nifty+index+fund+dividend+moneycontrol', None, {'User-Agent': 'Firefox/3.0.15'})
+def get_possible_fund_ids(fund_keywords):
+    url = 'http://www.google.com/search?q=moneycontrol+'+'+'.join(fund_keywords)
+    req = urllib2.Request(url, None, {'User-Agent': 'Firefox/3.0.15'})
     resp = urllib2.urlopen(req).read()
     soup = BeautifulSoup(resp)
     soup = soup.prettify().split('\n')
     soup = [line.strip() for line in soup if line.find('moneycontrol.com/mutual-funds/nav/') > -1]
-    print soup
     soup = [line.partition('www.moneycontrol.com')[2] for line in soup]
-    print soup
     soup = [line.split('%')[0] for line in soup]
     soup = [line.split('&')[0] for line in soup]
     soup = [line.split('+')[0] for line in soup]
-    soup = set([line for line in soup if not line.endswith('.html')])
-    print soup
-    ### Start writing from here
-#    data = urllib2.urlopen('http://www.google.com/search?q=uti+nifty+index+fund+dividend+moneycontrol').read()
-#    print data
+    soup = set([line.split('/')[-1] for line in soup if not line.endswith('.html')])
+    return soup
 
 
 
