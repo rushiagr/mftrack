@@ -51,7 +51,6 @@
 from examples import utimf
 from examples import icicipru
 
-#from db import models
 from db import api as db
 import utils
 
@@ -247,7 +246,8 @@ def txn_to_obj_list(txn_string, amc=None, user_id=None):
         
     # TODO Do not make this much api calls to db!!
     for obj in txn_obj_list:
-        obj['fund_id'] = db.get_fund_id(obj['fund_name'])
+        fund_keywords = get_keywords_from_fund_name(obj['fund_name'])
+        obj['fund_id'] = db.fund_id_from_keywords(fund_keywords)
 
     return txn_obj_list
 

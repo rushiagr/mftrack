@@ -5,23 +5,23 @@ from sqlalchemy import or_, text
 from sqlalchemy.sql import func
 import datetime
 
-fund_ids = {
-    'UTI-BOND FUND - GROWTH': 'MUT021',
-    'UTI-TREASURY ADVANTAGE FUND - INSTITUTIONAL PLAN - GROWTH': 'MUT119',
-    'UTI-NIFTY INDEX FUND - GROWTH': 'MUT029',
-    'UTI-NIFTY INDEX FUND - DIVIDEND': 'MUT087',
-    'ICICI Prudential US Bluechip Equity Fund - Regular Plan - Growth': 'MPI1065',
-    'ICICI Prudential Technology Fund - Direct Plan - Growth': 'MPI1128',
-    'ICICI Prudential Technology Fund - Regular Plan - Growth': 'MPI015',
-    'ICICI Prudential Export and Other Services Fund - Regular Plan - Growth': 'MPI110',
-    'blah':'blah',
-}
+# fund_ids = {
+#     'UTI-BOND FUND - GROWTH': 'MUT021',
+#     'UTI-TREASURY ADVANTAGE FUND - INSTITUTIONAL PLAN - GROWTH': 'MUT119',
+#     'UTI-NIFTY INDEX FUND - GROWTH': 'MUT029',
+#     'UTI-NIFTY INDEX FUND - DIVIDEND': 'MUT087',
+#     'ICICI Prudential US Bluechip Equity Fund - Regular Plan - Growth': 'MPI1065',
+#     'ICICI Prudential Technology Fund - Direct Plan - Growth': 'MPI1128',
+#     'ICICI Prudential Technology Fund - Regular Plan - Growth': 'MPI015',
+#     'ICICI Prudential Export and Other Services Fund - Regular Plan - Growth': 'MPI110',
+#     'blah':'blah',
+# }
 
-def get_fund_name(fund_id):
-    for k, v in fund_ids.iteritems():
-        if v == fund_id:
-            return k
-    raise BaseException
+# def get_fund_name(fund_id):
+#     for k, v in fund_ids.iteritems():
+#         if v == fund_id:
+#             return k
+#     raise BaseException
     
 def unpack_transactions(txn_list):
     """Converts list of DB transaction objects to list of dicts."""
@@ -49,9 +49,9 @@ def store_transactions(txn_list):
     db.session.commit()
     
 
-def get_fund_id(fund_name):
-    # to be replaced with a call to database
-    return fund_ids[fund_name]
+# def get_fund_id(fund_name):
+#     # to be replaced with a call to database
+#     return fund_ids[fund_name]
 
 def get_all_transactions(user_id): # TODO add sorted flag
     txns = models.TxnRaw.query.all()
@@ -104,14 +104,10 @@ def store_navs(fund_id, date_value_dict):
     fund = models.Fund.query.filter_by(id=fund_id).first()
     if fund:
         fund.updated = datetime.datetime.utcnow()
+        db.session.commit()
+        return True
     else:
-        # NOW, if we come here, means the fund value is not present. Inform user
-        # of this behavior and fix it in the backend manually somehow.
-        raise BaseException
-        fund = models.Fund(fund_id, get_fund_name(fund_id))
-        db.session.add(fund)
-    db.session.commit()
-    return True
+        return False
 
 def last_updated(fund_id):
 #    return models.Fund.query.filter_by(fund_id=fund_id).first().last_updated
@@ -128,6 +124,7 @@ def fund_id_from_keywords(keywords):
 #    models.Keyword.query(models.Keyword.id,
 #                         db.count(models.Keyword.keyword).label("kw_count"))\
 #                 .filter(or_(keywords_OR_arg)).order_by("kw_count")
+    keywords = [keywords]
     query_str = ('SELECT keyword.id, count(*) as count_col '
                 'from keyword '
                 'where ')
