@@ -43,38 +43,15 @@ class Nav(db.Model):
         self.last_updated = datetime.datetime.utcnow()
 
 class Fund(db.Model):
-    id = db.Column(db.String(10), primary_key=True)
-    name = db.Column(db.String(100))   # Fund name as on transaction statement
-    updated = db.Column(db.DateTime)
-    family = db.Column(db.String(100))
-    Class = db.Column(db.String(100))
-    url = db.Column(db.String(200))
+    fund_id = db.Column(db.String(10), primary_key=True)
+    fund_name = db.Column(db.String(100))   # Fund name as on transaction statement
+    last_updated = db.Column(db.DateTime)
     
-    def __init__(self, fund_id, fund_name, fund_family, fund_class, fund_url):
-        self.id = fund_id
-        self.name = fund_name
-        self.family = fund_family
-        self.Class = fund_class
-        self.url = fund_url
-        self.updated = datetime.datetime.utcnow()
+    def __init__(self, fund_id, fund_name):
+        self.fund_id = fund_id
+        self.fund_name = fund_name
+        self.last_updated = datetime.datetime.utcnow()
 
-class Keyword(db.Model):
-    id = db.Column(db.String(10), primary_key=True)
-    keyword = db.Column(db.String(30), primary_key=True)
-    
-    def __init__(self, id, keyword):
-        self.id = id
-        self.keyword = keyword
-
-class FundDataExtracted(db.Model):
-    __tablename__ = 'fund_data_extracted'
-    id = db.Column(db.String(10), primary_key=True)
-    is_updated = db.Column(db.Integer)
-    
-    def __init__(self, id, is_updated):
-        self.id = id
-        self.is_updated = is_updated
-    
 #db.create_all() # Make a create_all() call here (after importing this file 
 # to app.py) to create all tables
         

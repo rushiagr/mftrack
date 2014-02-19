@@ -24,24 +24,14 @@ import engine
 def main():
     if request.method =='POST':
         engine.store_transactions(request.form.get('inputText'),
-                                  request.form.get('amc'),
-                                  1)
+                                      request.form.get('amc'), 1)
         flash('OK. Saved in DB.')
         mf_dict, stats = engine.get_summary(1)
-        fund_families = engine.get_all_fund_families()
-        return render_template('index.html',
-                               mf_dict=mf_dict,
-                               stats=stats,
-                               fund_families=fund_families)
+        return render_template('index.html', mf_dict=mf_dict, stats=stats)
     elif request.method == 'GET':
         mf_dict, stats = engine.get_summary(1)
-        fund_families = engine.get_all_fund_families()
-        return render_template('index.html',
-                               mf_dict=mf_dict,
-                               stats=stats,
-                               fund_families=fund_families)
+        return render_template('index.html', mf_dict=mf_dict, stats=stats)
 
 
 if __name__ == "__main__":
-#    engine.get_search_url(['nifty', 'uti', 'dividend', 'index', 'fund'])
-    app.run(debug=True, port=5002)
+    app.run(debug=True, port=5004)
