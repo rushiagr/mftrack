@@ -86,7 +86,8 @@ class Txn(object):
         self.date = utils.int_date(date)
         self.status = status
         self.remarks = remarks
-        self.fund_id = db.get_fund_id(fund_name)
+        fund_keywords = get_keywords_from_fund_name(fund_name)
+        self.fund_id = db.fund_id_from_keywords(fund_keywords)
         self.nav = None     # NAV on the day the transaction is performed
         self.amc = None
         # NOTE: The Txn object will also possess a list 'sold_units_nav_tuple_list' 
@@ -190,7 +191,8 @@ def fill_all_navs_for_fund(txn_list):
 def get_curr_fund_value(fund_name_list):
     unit_values = {}
     for fund in fund_name_list:
-        fund_id = db.get_fund_id(fund)
+        fund_keywords = get_keywords_from_fund_name(fund)
+        fund_id = db.fund_id_from_keywords(fund_keywords)
         data_dict, last_date = get_mf_data(fund_id, utils.last_month(), utils.today())
         unit_values[fund] = data_dict[max(data_dict)]
     return unit_values
@@ -200,8 +202,7 @@ def txn_to_obj_list(txn_string, amc=None, user_id=None):
     
     txn_matrix = parse_txn(txn_string)
     txn_obj_list = []
-    print 'amc', amc
-    
+
     if amc == 'UTI Mutual Fund':
         positions = [0, 1, 2, 3, 4]
     elif amc == 'ICICI Prudential Mutual Fund':
@@ -232,6 +233,10 @@ def txn_to_obj_list(txn_string, amc=None, user_id=None):
     if amc == 'UTI Mutual Fund':
         for obj, txn in zip(txn_obj_list, txn_matrix):
             obj['remarks'] = txn[6].strip() if len(txn) >= 7 else ''
+    elif amc == 'ICICI Prudential Mutual Fund':
+        for obj in txn_obj_list:
+            if obj['fund_name'].find('- Regular Plan -') > -1:
+                obj['fund_name'] = obj['fund_name'].replace(' - Regular Plan -', '')
 
 # DO NOT STORE ICICI NAV. IT IS SoMETIMES AN OLD VALUE
 #     elif amc == 'ICICI Prudential Mutual Fund':
@@ -255,6 +260,7 @@ def google_fund_id(fund_name, nav, nav_date):
     """Google searches for the fund name. If multiple fund IDs found on first
     google search page, it checks the NAV of that fund on the given date to
     select exactly which fund out of all the found fund IDs."""
+    print 'beek'
     fund_keywords = get_keywords_from_fund_name(fund_name)
     fund_ids = get_possible_fund_ids(fund_keywords)
     return get_correct_fund_id_from_nav_data(fund_ids, nav, nav_date)
@@ -278,13 +284,25 @@ def get_possible_fund_ids(fund_keywords):
     soup = [line.split('&')[0] for line in soup]
     soup = [line.split('+')[0] for line in soup]
     soup = set([line.split('/')[-1] for line in soup if not line.endswith('.html')])
+    print 'possible fund IDs: %s', str(soup)
     return soup
 
 
 
 def get_keywords_from_fund_name(fund_name):
     kws = fund_name.split()
-    kws = set([kw.lower() for kw in kws if kw not in ['-']])
+    
+    kws = [kw.lower() for kw in kws if kw not in ['-']]
+
+    kws_to_remove = []
+    for i in range(len(kws)):
+        if kws[i].find('-') > -1:
+            kws_to_remove.append(kws[i])
+            new_kws = kws[i].split('-')
+            for kw in new_kws:
+                kws.append(kw)
+    kws = set([kw for kw in kws if kw not in kws_to_remove])
+    
     shortcut_map = {'(g)': 'growth plan',
                     '(d)': 'dividend plan',
                     'fpo': 'fixed pricing option',
@@ -509,18 +527,4 @@ def get_new_db_objects(to_db_obj_list, from_db_obj_list):
 def validate_existing_and_new_txn_data(to_db_obj_list,
                                        from_db_obj_list):
     return
-
-
-
-
-
-#store_textbox_data_in_db(utimf.txn_str, amc='uti', user_id=7777)
-#store_textbox_data_in_db(icicipru.txn_str, amc='icici', user_id=6666)
-
-# for fund in mf_dict:
-#     # not so good way of calculating this information, as it makes a lot of
-#     # calls to moneycontrol website
-#     print 'fund: %s value: %s' % (fund, amount_invested_from_list(mf_dict[fund]))
-# print sum([amount_invested_from_list(mf_dict[fund]) for fund in mf_dict])
-
 

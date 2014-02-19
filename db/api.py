@@ -124,7 +124,7 @@ def fund_id_from_keywords(keywords):
 #    models.Keyword.query(models.Keyword.id,
 #                         db.count(models.Keyword.keyword).label("kw_count"))\
 #                 .filter(or_(keywords_OR_arg)).order_by("kw_count")
-    keywords = [keywords]
+    keywords = list(keywords)
     query_str = ('SELECT keyword.id, count(*) as count_col '
                 'from keyword '
                 'where ')
@@ -139,7 +139,9 @@ def fund_id_from_keywords(keywords):
 
     query_str += ' or '.join(ls)
     query_str += ' group by keyword.id order by count_col desc'
-    return db.engine.execute(text(query_str), **param_dict).first().id
+    return_val =  db.engine.execute(text(query_str), **param_dict).first().id
+    print 'id returned:', return_val
+    return return_val
 
 def get_all_fund_families():
     return [row['family'] for row in db.engine.execute('SELECT DISTINCT family FROM fund ORDER BY family;')]
