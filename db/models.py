@@ -2,7 +2,7 @@ from app import db
 
 import datetime
 
-class TxnRaw(db.Model):
+class Txn(db.Model):
     """Contains raw transactions from copied files."""
     txn_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)  # 1 for now
@@ -53,5 +53,5 @@ class Fund(db.Model):
         self.last_updated = datetime.datetime.utcnow()
 
 #db.create_all() # Make a create_all() call here (after importing this file 
-# to app.py) to create all tables
+# to app.py ***in the main portion***) to create all tables
         

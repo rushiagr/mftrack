@@ -43,7 +43,7 @@ def unpack_transactions(txn_list):
 
 def store_transactions(txn_list):
     for txn in txn_list:
-        db.session.add(models.TxnRaw(txn))
+        db.session.add(models.Txn(txn))
     db.session.commit()
     
 
@@ -52,15 +52,15 @@ def get_fund_id(fund_name):
     return fund_ids[fund_name]
 
 def get_all_transactions(user_id): # TODO add sorted flag
-    txns = models.TxnRaw.query.all()
+    txns = models.Txn.query.all()
     return unpack_transactions(txns)
 
 def get_txns_from_db(user_id, amc):
-    return models.TxnRaw.query.filter_by(user_id=user_id, amc=amc).all()
+    return models.Txn.query.filter_by(user_id=user_id, amc=amc).all()
 
 def get_last_transaction_date(user_id, amc):
     try:
-        return models.TxnRaw.query.filter_by(user_id=user_id, amc=amc).order_by(models.TxnRaw.date.desc()).first().date
+        return models.Txn.query.filter_by(user_id=user_id, amc=amc).order_by(models.Txn.date.desc()).first().date
     except AttributeError:
         return 00000000
 
@@ -68,7 +68,7 @@ def get_db_objects_from_txn_list(txn_list, user_id):
     """Returns DB objects from txn_objs."""
     db_objs = []
     for txn_obj in txn_list:
-        db_obj = models.TxnRaw(txn_obj['fund_name'],
+        db_obj = models.Txn(txn_obj['fund_name'],
                         txn_obj['amc'],
                         txn_obj['units'],
                         txn_obj['amount'],

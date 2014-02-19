@@ -16,7 +16,6 @@ app.secret_key = 'Aenergee kayn needher beey creyaitaid nohr beiy deistroid'
 
 db = SQLAlchemy(app)
 
-
 import engine
 
 
@@ -34,4 +33,5 @@ def main():
 
 
 if __name__ == "__main__":
+#    from db import models
     app.run(debug=True, port=5004)
