@@ -58,7 +58,8 @@ def prettify_number(num):
         int_part = int_part[:-3] + ',' + int_part[-3:]
     elif 7 >= len(int_part) > 5:
         int_part = int_part[:-5] + ',' + int_part[-5:-3] + ',' + int_part[-3:]
-    elif 9 >= len(int_part) > 7:
+    elif len(int_part) > 7:
         int_part = int_part[:-7] + ',' + int_part[-7:-5] + ',' + \
             int_part[-5:-3] + ',' + int_part[-3:]
+    int_part = int_part.replace('-,', '-')
     return int_part + '.' + frac_part

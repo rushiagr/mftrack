@@ -29,4 +29,27 @@ class UtilsTestCase(unittest.TestCase):
         
         self.assertRaises(BaseException, utils.int_date, 99999999)
         self.assertRaises(BaseException, utils.int_date, '1/1/2001')
-        
+    
+    def test_prettify_number(self):
+        inp_outp_dict = {
+            1:              '1.00',
+            1.00:           '1.00',
+            123.4567:       '123.46',
+            123.45:         '123.45',
+            1234.56:        '1,234.56',
+            12345.67:       '12,345.67',
+            123456.7:       '1,23,456.70',
+            1234567.89:     '12,34,567.89',
+            12345678.9:     '1,23,45,678.90',
+            9123456789.87:  '912,34,56,789.87',
+            -1.0:           '-1.00',
+            -123.45:        '-123.45',
+            -1234.56:       '-1,234.56',
+            -12345.67:      '-12,345.67',
+            -123456.7:      '-1,23,456.70',
+            -1234567.89:    '-12,34,567.89',
+            -12345678.9:    '-1,23,45,678.90',
+            -9123456789.87: '-912,34,56,789.87',
+         }
+        for inp, outp in inp_outp_dict.iteritems():
+            self.assertEqual(outp, utils.prettify_number(inp))
