@@ -138,6 +138,8 @@ def get_detailed_stats(txn_list):
     stats = {}
     stats['total_amount_invested'] = sum([mf_dict[mf]['total_amount_invested'] for mf in mf_dict])
     stats['total_amount_now'] = sum([mf_dict[mf]['total_amount_now'] for mf in mf_dict])
+    stats['total_gains'] = stats['total_amount_now'] - stats['total_amount_invested']
+    print stats['total_gains']
     stats['percentage_gains'] = stats['total_amount_now']/stats['total_amount_invested']*100.0 - 100.0 if stats['total_amount_invested'] != 0.0 else 0.0
     return mf_dict, stats
 
@@ -382,8 +384,22 @@ def get_summary(user_id):
     """Get all the important data for the user"""
     txns = db.get_all_transactions(user_id)
     mf_dict, stats = get_detailed_stats(txns)
+    mf_dict, stats = prettify_data(mf_dict, stats)
     return mf_dict, stats
 
+
+def prettify_data(mf_dict, stats):
+    for mf in mf_dict:
+        for val in ['total_units', 'total_amount_invested',
+                    'total_amount_now', 'percentage_gains',
+                    'annualized_gains']:
+            mf_dict[mf][val] = utils.prettify_number(mf_dict[mf][val])
+
+    for val in ['total_amount_invested', 'percentage_gains',
+                'total_amount_now', 'total_gains']:
+        stats[val] = utils.prettify_number(stats[val])
+
+    return mf_dict, stats
 
 ################################################
 ################################################

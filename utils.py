@@ -49,3 +49,16 @@ def diff_days(date1, date2):
     date_1 = datetime.date(date1/10000, date1/100%100, date1%100)
     date_2 = datetime.date(date2/10000, date2/100%100, date2%100)
     return (date_1 - date_2).days
+
+def prettify_number(num):
+    num = float(num)
+    num = "%.2f" % num
+    int_part, frac_part = tuple(num.split('.'))
+    if 5 >= len(int_part) > 3:
+        int_part = int_part[:-3] + ',' + int_part[-3:]
+    elif 7 >= len(int_part) > 5:
+        int_part = int_part[:-5] + ',' + int_part[-5:-3] + ',' + int_part[-3:]
+    elif 9 >= len(int_part) > 7:
+        int_part = int_part[:-7] + ',' + int_part[-7:-5] + ',' + \
+            int_part[-5:-3] + ',' + int_part[-3:]
+    return int_part + '.' + frac_part
