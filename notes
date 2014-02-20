@@ -1,3 +1,32 @@
+TODO:
+High level:
+
+Better Display of data
+	Good colour scheme - use bootstrap
+	Nice layout of homepage
+	def to prettify rupees
+	def to make fund appear not all capitalized
+
+Code cleanup
+	Move all the configurable options into a config file
+	remove all todos and create issues on github for them
+	remove unwanted methods
+	organize code
+	write unit tests!!!!
+	remove circular imports
+	db initialization script
+
+Deploy on server
+	use puppet?
+
+Additional features
+	dropdown and not textbox for fund
+	login with facebook
+	provide interface to add new funds with their fund IDs
+	implement all todos
+
+
+
 
 Install flask, flask-sqlalchemy extensions
  sudo pip install flask
