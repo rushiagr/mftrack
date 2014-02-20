@@ -60,7 +60,7 @@
 			</td>
 		</tr>
         </table>
-        <hr>
+		<br>
 
 		<div class="bs-example table-responsive">
 		<h3>Investment Details: </h3>
@@ -88,12 +88,23 @@
 				{% endfor %}
 			</table>
 		</div>
+		<br>
+		<hr>
 		
-    	Input you data here:
+		<h3>Add more data:</h4>
     	<form method="post">
-	    	<textarea name='inputText'></textarea>
-	    	<input name='amc' placeholder='uti'></input>
-	    	<button type="submit">Submit</button>
+		<input class="form-control input-lg"  name='inputText'></input>
+
+		<div style="padding-top: 20px; padding-bottom: 20px">
+			<div style="font-size: 1.5em"> Mutual Fund:
+			<select>
+				<option value="UTIMF">UTI</option>
+				<option value="ICICIPru">ICICI Prudential</option>
+			</select>
+		</div>
+		</div>
+		<br>
+		<button class="btn btn-primary btn-lg" type="submit">Submit</button>
     	</form>
 	</div>
     </body>
