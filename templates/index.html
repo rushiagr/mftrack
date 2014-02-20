@@ -33,12 +33,34 @@
 		{% endif %}
 		{% endwith %}
     
-    	<b>Important statistics: </b><br>
-        Total amount invested: {{ stats['total_amount_invested'] }} <br>
-        Total amount now: {{ stats['total_amount_now'] }} <br>
-        Total gains: {{ stats['total_amount_now'] - stats['total_amount_invested'] }} <br>
-        Percentage gains: {{ stats['percentage_gains'] }} <br>
-		<br>
+	<h3>Summary: </h3>
+        <table>
+		<tr>
+			<td>
+				<div style="font-size: 1.3em;">Total amount invested:</div>
+			</td>
+			<td>
+				{{ stats['total_amount_invested'] }}
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<div style="font-size: 1.3em;">Current value:</div>
+			</td>
+			<td>
+				{{ stats['total_amount_now'] }}
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<div style="font-size: 1.3em;">Gains:</div>
+			</td>
+			<td>
+				{{  stats['total_amount_now'] - stats['total_amount_invested']  }} ({{ stats['percentage_gains'] }})
+			</td>
+		</tr>
+        </table>
+        <hr>
 
 		<div class="bs-example table-responsive">
 			<table class="table table-striped table-hover">
