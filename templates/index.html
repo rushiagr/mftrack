@@ -3,10 +3,30 @@
 <html>
     <head>
         <title>WELCOME</title>
+        <link href="static/bootswatch/bootstrap.css" rel="stylesheet" media="screen"/>
+        <script src="static/js/jquery-1.10.2.min.js"></script>
+        <script src="static/bootstrap/js/bootstrap.min.js"></script>
     </head>
 
     <body>
     
+
+    <div class="container">
+
+      <div class="page-header" id="banner">
+        <div class="row">
+          <div class="col-lg-6">
+            <h1>Lumen</h1>
+            <p class="lead">Light and shadow</p>
+          </div>
+          <div class="col-lg-6">
+            <div class="bsa well">
+
+            </div>
+          </div>
+        </div>
+      </div>
+
     	{% with msgs = get_flashed_messages() %}
     	{% if msgs %}
     		{% for msg in msgs %}
@@ -51,5 +71,6 @@
 	    	<input name='amc' placeholder='uti'></input>
 	    	<button type="submit">Submit</button>
     	</form>
+	</div>
     </body>
 </html>
