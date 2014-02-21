@@ -85,6 +85,6 @@ def get_mftrack_config():
     ret['db_uri'] = db_uri
     ret['secret_key'] = conf['secretkey']
     ret['debug'] = conf['debug']
+    ret['host'] = conf['host']
     ret['port'] = int(conf['port'])
     return ret
- 

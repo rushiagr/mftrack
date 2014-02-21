@@ -3,6 +3,9 @@
 # Debug value. (True or False)
 debug=True
 
+# Host IP to run server on. Change to 0.0.0.0 if running on AWS.
+host=127.0.0.1
+
 # Port to run the server on
 port=5015
 

@@ -38,4 +38,4 @@ def main():
 
 if __name__ == "__main__":
 #    from db import models
-    app.run(debug=conf['debug'], port=conf['port'])
+    app.run(debug=conf['debug'], host=conf['host'], port=conf['port'])
