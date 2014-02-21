@@ -63,3 +63,28 @@ def prettify_number(num):
             int_part[-5:-3] + ',' + int_part[-3:]
     int_part = int_part.replace('-,', '-')
     return int_part + '.' + frac_part
+
+def get_config(filename=None):
+    filename = filename or 'mftrack.conf'
+    lines = open(filename).readlines()
+    return_dict = {}
+    for line in lines:
+        if line.strip() and not line.strip().startswith('#'):
+            key, _meh, val = line.strip().partition('=')
+            if val in ['True', 'False']:
+                return_dict[key] = bool(val)
+                continue
+            return_dict[key] = val
+    return return_dict
+
+def get_mftrack_config():
+    conf = get_config()
+    ret = {}
+    # TODO: exception handling
+    db_uri = conf['db'] + '://' + conf['dbuser'] + ':' + conf['dbpass'] + '@' + conf['dbhost'] + '/' + conf['dbname']
+    ret['db_uri'] = db_uri
+    ret['secret_key'] = conf['secretkey']
+    ret['debug'] = conf['debug']
+    ret['port'] = int(conf['port'])
+    return ret
+ 

@@ -1,0 +1,25 @@
+# Only removes comments for which the pound sign is the first char on that line
+
+# Debug value. (True or False)
+debug=True
+
+# Port to run the server on
+port=5015
+
+# Database
+db=mysql
+
+# Database user
+dbuser=mydatabaseuser
+
+# Database password
+dbpass=mydatabasesecretpassword
+
+# Database host where mysql is running
+dbhost=localhost
+
+# Database name
+dbname=mymftrackdb
+
+# Secret key
+secretkey=Aenergeekaynneedherbeeycreyaitaidnohrbeiydeistroid

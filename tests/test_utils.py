@@ -53,3 +53,10 @@ class UtilsTestCase(unittest.TestCase):
          }
         for inp, outp in inp_outp_dict.iteritems():
             self.assertEqual(outp, utils.prettify_number(inp))
+        
+    def test_get_config(self):
+        expected = {'debug': True,
+                  'port': '',
+                  'db': 'mysql'}
+        actual = utils.get_config('example.conf')
+        self.assertDictEqual(expected, actual)
