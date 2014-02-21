@@ -48,9 +48,6 @@
 # it gets updated at so and so time so you can expect it to become updated again
 # in blah hours
 
-from examples import utimf
-from examples import icicipru
-
 #from db import models
 from db import api as db
 import utils
